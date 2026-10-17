@@ -122,14 +122,20 @@ export default function Tickets({ showMap = true }) {
             const left = avail?.[z.id]?.left;
             const sold = left === 0;
             return (
+              <div className="ticket-slot" key={z.id}>
               <article
-                className={`ticket ${hot === z.id ? "hot" : ""}`}
-                key={z.id}
+                className={`ticket ${hot === z.id ? "hot" : ""} ${z.id === "vip" ? "featured" : ""}`}
                 style={{ "--c": z.color }}
                 data-tilt
                 onMouseEnter={() => setHot(z.id)}
                 onMouseLeave={() => setHot(null)}
+                onMouseMove={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect();
+                  e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
+                  e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
+                }}
               >
+                {z.id === "vip" && <span className="ribbon">Más elegido</span>}
                 <span className="zone">Zona {z.name}</span>
                 <span className="days">{z.days}</span>
                 <div className="price">
@@ -139,11 +145,13 @@ export default function Tickets({ showMap = true }) {
                 </div>
                 <hr />
                 <ul>{z.perks.map((p) => <li key={p}>{p}</li>)}</ul>
+                <div className="meter" aria-hidden><i style={{ width: `${left == null ? 0 : Math.round(((z.seats - left) / z.seats) * 100)}%` }} /></div>
                 <p className="seats">
                   {left == null ? `${z.seats} cupos` : sold ? "Agotado" : left <= 25 ? `¡Últimos ${left} cupos!` : `Quedan ${left} de ${z.seats} cupos`}
                 </p>
                 <button className="btn" onClick={() => setOpen(z)} disabled={sold} data-magnetic>{sold ? "Agotado" : "Comprar"} <span aria-hidden>→</span></button>
               </article>
+              </div>
             );
           })}
         </div>

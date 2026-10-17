@@ -25,3 +25,25 @@
 @media (prefers-reduced-motion: reduce) { .sc-stage { animation: none; } }
 
 .preview-bar { position: fixed; z-index: 200; left: 0; right: 0; bottom: 0; padding: 7px 12px; text-align: center; font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; background: #b44dff; color: #0a0612; font-weight: 700; }
+
+/* ── Entradas v4: tarjetas alineadas, brillo que sigue al cursor, cinta y medidor de cupos ── */
+.tickets-grid { align-items: stretch; gap: clamp(16px, 2vw, 28px); }
+.ticket-slot { display: flex; }                      /* el slot recibe la animación de entrada; la tarjeta, el tilt */
+.ticket-slot > .ticket { flex: 1; min-width: 0; }
+.ticket { overflow: visible; isolation: isolate; background:
+  radial-gradient(420px circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--c) 16%, transparent), transparent 62%),
+  linear-gradient(180deg, rgba(255,255,255,.035), transparent 45%); }
+.ticket ul { align-content: start; gap: 11px; }
+.ticket li { display: flex; gap: 10px; line-height: 1.45; }
+.ticket li::before { flex: none; margin-right: 0; }
+.ticket .price b { font-weight: 300; background: linear-gradient(180deg, #fff 40%, color-mix(in srgb, var(--c) 55%, #fff)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.ticket.featured { border-color: color-mix(in srgb, var(--c) 55%, transparent); box-shadow: 0 30px 80px -40px var(--c); }
+.ticket.featured:hover, .ticket.featured.hot { box-shadow: 0 30px 90px -30px var(--c); }
+.ribbon { position: absolute; top: -1px; right: 22px; padding: 7px 12px 8px; font-size: .62rem; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: #0a0612; background: var(--c); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%); padding-bottom: 14px; }
+.meter { margin-top: 20px; height: 3px; background: rgba(255,255,255,.08); overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--c); box-shadow: 0 0 12px var(--c); transition: width 1.2s cubic-bezier(.2,.7,.2,1); }
+.ticket .seats { margin-top: 10px; }
+.ticket .btn { position: relative; overflow: hidden; }
+.ticket .btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.45) 50%, transparent 70%); transform: translateX(-120%); transition: transform .7s; }
+.ticket .btn:hover::after { transform: translateX(120%); }
+@media (max-width: 860px) { .ticket-slot { display: block; } }
