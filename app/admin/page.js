@@ -16,6 +16,7 @@ export default function Admin() {
   const [staff, setStaff] = useState([]);
   const [ns, setNs] = useState({ username: "", name: "", password: "" });
   const [serr, setSerr] = useState("");
+  const [recs, setRecs] = useState([]);
 
   async function load(k = key) {
     setErr("");
@@ -25,6 +26,20 @@ export default function Admin() {
     setData(d);
     loadAdvisors(k);
     loadStaff(k);
+    loadRecs(k);
+  }
+  async function loadRecs(k = key) {
+    const r = await fetch("/api/admin/complaints", { headers: { "x-admin-key": k } });
+    if (r.ok) setRecs((await r.json()).complaints);
+  }
+  async function answerRec(id) {
+    const respuesta = prompt("Respuesta para el consumidor (se envía a su correo):");
+    if (!respuesta) return;
+    const r = await fetch("/api/admin/complaints", { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ id, respuesta }) });
+    const d = await r.json();
+    if (!r.ok) return alert(d.error || "Error");
+    if (!d.correoEnviado) alert("Respuesta guardada, pero el correo no se pudo enviar (¿SMTP sin configurar?). Envíala manualmente.");
+    loadRecs();
   }
   async function loadStaff(k = key) {
     const r = await fetch("/api/admin/staff", { headers: { "x-admin-key": k } });
@@ -150,6 +165,27 @@ export default function Admin() {
                   </tr>
                 ))}
                 {!advisors.length && <tr><td colSpan="5" style={{ textAlign: "center", color: "var(--mute)" }}>Aún no hay asesores</td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <h2 style={{ marginTop: 56 }}>Libro de Reclamaciones</h2>
+          <p className="note">Plazo de respuesta: 15 días hábiles (sin descontar feriados). Pública en <code>/reclamaciones</code>.</p>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>N.º</th><th>Fecha</th><th>Tipo</th><th>Consumidor</th><th>Detalle</th><th>Vence</th><th>Estado</th><th /></tr></thead>
+              <tbody>
+                {recs.map((c) => (
+                  <tr key={c.id}>
+                    <td><b>{c.numero}</b></td><td><small>{c.createdAt.slice(0, 10)}</small></td><td>{c.tipo}</td>
+                    <td>{c.nombre}<br /><small>{c.docTipo} {c.docNum} · {c.correo}<br />{c.telefono}</small></td>
+                    <td style={{ maxWidth: 320 }}><small>{c.detalle}<br /><b>Pide:</b> {c.pedido}</small></td>
+                    <td><small>{c.status === "atendido" ? "—" : c.venceEl}</small></td>
+                    <td><span className={`st st-${c.status === "atendido" ? "paid" : "pending"}`}>{c.status === "atendido" ? "Atendido" : "Pendiente"}</span></td>
+                    <td className="acts">{c.status !== "atendido" && <button onClick={() => answerRec(c.id)}>Responder</button>}</td>
+                  </tr>
+                ))}
+                {!recs.length && <tr><td colSpan="8" style={{ textAlign: "center", color: "var(--mute)" }}>Sin reclamos registrados</td></tr>}
               </tbody>
             </table>
           </div>

@@ -87,7 +87,7 @@ function CheckoutModal({ zone, onClose }) {
 
         <label className="check">
           <input type="checkbox" checked={f.acepta} onChange={set("acepta")} />
-          <span>Leí y acepto los <a href="/terminos" target="_blank">Términos y Condiciones</a> ({EVENT.termsVersion}).</span>
+          <span>Leí y acepto los <a href="/terminos" target="_blank">Términos y Condiciones</a> ({EVENT.termsVersion}) y la <a href="/privacidad" target="_blank">Política de Privacidad</a>.</span>
         </label>
 
         {err && <p className="err" role="alert">{err}</p>}

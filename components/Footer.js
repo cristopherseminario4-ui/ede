@@ -30,12 +30,13 @@ export default function Footer() {
         <div>
           <h4>Legal</h4>
           <Link href="/terminos">Términos y Condiciones</Link>
-          <a href="#libro">Libro de Reclamaciones</a>
+          <Link href="/privacidad">Política de Privacidad</Link>
+          <Link href="/reclamaciones">Libro de Reclamaciones</Link>
         </div>
       </div>
       <p className="legal" id="libro">
         EL DESPERTAR DEL EMPRENDEDOR S.A.C. · RUC {EVENT.ruc} · Calle Mayor Luis García Rojas N.° 181, Urb. Alexander von Humboldt, Miraflores, Lima.
-        Parte de Hilario GRP. Evento formativo, motivacional y de networking: no se garantizan resultados económicos. Libro de Reclamaciones virtual: [POR IMPLEMENTAR].
+        Parte de Hilario GRP. Evento formativo, motivacional y de networking: no se garantizan resultados económicos. Cuenta con <Link href="/reclamaciones">Libro de Reclamaciones</Link> virtual.
       </p>
     </footer>
   );

@@ -93,3 +93,21 @@ POST /api/checkout  {zone,nombre,dni,telefono,correo,comprobante,acepta:true}
 GET  /api/admin/orders   (header x-admin-key: ede-local-admin)
 ```
 Rutas: `/`, `/ponentes`, `/experiencia`, `/entradas`, `/stands`, `/faq`, `/terminos`, `/gracias?code=…`, `/admin`.
+
+---
+## Actualización (17-oct-2026) — estado del sistema
+
+**Hecho desde el primer documento:**
+- Ponentes rediseñada (`components/SpeakerShowcase.js`, datos en `lib/speakers.js`; 3 fichas aún "en validación").
+- Entradas: tarjetas alineadas, cinta "Más elegido", medidor de cupos.
+- Seguridad: pase `/gracias` por token largo, demo cerrada en producción, webhook con monto y firma, expiración de la preferencia de pago, límite por IP, `.gitignore`.
+- **Ventas por asesor:** link `?a=codigo` (atribución) y portal `/asesor` (código + PIN) con venta cobrada fuera de la web: voucher obligatorio, n.º de operación único, fecha, monto, banco; el cliente acepta los T&C desde `/aceptar/<token>` (queda versión, fecha, hora e IP) y la venta pasa a "en revisión".
+- **Puente a Django** (`lib/django.js`): Mercado Pago → entra confirmada; asesor → entra pendiente con `voucher_url` para que contabilidad confirme en su panel de Django.
+- **Contabilidad** (`/contabilidad`, usuarios propios aparte del sistema de entradas): lista de ventas sin comprobante, registro de boleta/factura (serie EB01-… precargada, PDF), envío por correo, CSV para el facturador. Sin API de facturación: manual.
+- **Libro de Reclamaciones** (`/reclamaciones`, panel admin con plazo de 15 días hábiles) y **Política de Privacidad** (`/privacidad`, borrador a validar con legal).
+- SEO: Open Graph, ícono, JSON-LD de evento, sitemap. Móvil sin desbordes (360 px).
+- Demo para gerencia: `/demo` (recorrido de 5 pasos) y `/contabilidad` con datos ficticios en la vista previa.
+- `scripts/smoke.mjs`: 34 pruebas de todos los flujos (todas pasan en local).
+- Repo propio: github.com/cristopherseminario4-ui/ede · Vista previa: landing-ede.vercel.app
+
+**Pendiente (depende de terceros):** credenciales de Mercado Pago, SMTP, hosting con disco persistente, datos del local/horarios, validación legal de textos, confirmación de las fichas de ponentes, API de facturación. Ver `DEPLOY.md`.

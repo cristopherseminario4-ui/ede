@@ -83,3 +83,22 @@
 .demo-voucher-photo { object-fit: contain; background: #f4f1fa; max-height: 380px; }
 .demo-thumb { display: flex; gap: 16px; align-items: center; margin-top: 12px; font-size: .8rem; color: #cfc9dc; }
 .demo-thumb .demo-voucher, .demo-thumb img { width: 110px; height: auto; max-height: 150px; object-fit: contain; }
+
+.rec-h { font-size: .8rem; font-weight: 500; letter-spacing: .24em; text-transform: uppercase; color: var(--violet); margin: 34px 0 12px; }
+textarea { width: 100%; background: transparent; color: inherit; border: 1px solid var(--line); padding: 12px; font: inherit; resize: vertical; }
+
+/* Móvil: formularios y paneles sin desbordes */
+.demo-panel > *, .advisor-form > * { min-width: 0; }
+.demo-panel, .advisor-form, .demo-card { max-width: 100%; }
+.table-wrap { max-width: 100%; overflow-x: auto; }
+@media (max-width: 600px) {
+  .row2 { grid-template-columns: 1fr !important; }
+  .demo-tabs button { flex: 1 1 calc(50% - 8px); padding: 12px 10px; }
+  .admin-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .demo-thumb { flex-wrap: wrap; }
+}
+.field { min-width: 0; }
+.field input[type="file"] { width: 100%; max-width: 100%; }
+.field .btn { max-width: 100%; white-space: normal; }
+.page a, .page p, .page li, footer a, .legal { overflow-wrap: anywhere; }
+select, input, textarea { max-width: 100%; }
