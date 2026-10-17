@@ -79,3 +79,7 @@
 .demo-dl dt { font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--mute); }
 .demo-dl dd { margin: 2px 0 0; }
 @media (max-width: 720px) { .demo-card { grid-template-columns: 1fr; } .demo-voucher { max-width: 240px; } }
+
+.demo-voucher-photo { object-fit: contain; background: #f4f1fa; max-height: 380px; }
+.demo-thumb { display: flex; gap: 16px; align-items: center; margin-top: 12px; font-size: .8rem; color: #cfc9dc; }
+.demo-thumb .demo-voucher, .demo-thumb img { width: 110px; height: auto; max-height: 150px; object-fit: contain; }

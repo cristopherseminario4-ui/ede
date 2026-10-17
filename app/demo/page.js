@@ -24,6 +24,8 @@ const money = (n) => `S/ ${n.toLocaleString("es-PE")}`;
 const zoneOf = (id) => ZONES.find((z) => z.id === id);
 
 function Voucher({ o }) {
+  if (o.img) return <img src={o.img} alt={`Voucher subido, operación ${o.op}`} className="demo-voucher demo-voucher-photo" />;
+  if (o.pdfName) return <div className="demo-voucher demo-file">📄 {o.pdfName}<br /><small>PDF adjunto</small></div>;
   return (
     <svg viewBox="0 0 240 300" className="demo-voucher" role="img" aria-label={`Voucher de ejemplo, operación ${o.op}`}>
       <rect width="240" height="300" rx="10" fill="#f4f1fa" />
@@ -46,6 +48,8 @@ export default function Demo() {
   const [sel, setSel] = useState(null);
   const [form, setForm] = useState({ zone: "vip", nombre: "Rosa Mendoza Vega", dni: "46789012", tel: "999 888 777", metodo: "Yape", op: "91234567", fecha: new Date().toISOString().slice(0, 10), banco: "Yape" });
   const [ok, setOk] = useState(false);
+  const [vfile, setVfile] = useState(null); // { name, size, img?, pdf?, sample? }
+  const [verr, setVerr] = useState("");
   const [view, setView] = useState(null);
   const [mail, setMail] = useState(null);
   const [serial, setSerial] = useState(119);
@@ -55,8 +59,8 @@ export default function Demo() {
   const register = (e) => {
     e.preventDefault();
     const code = `EDE26-${Math.random().toString(36).slice(2, 6).toUpperCase().replace(/[01OI]/g, "X")}`;
-    const o = { code, zone: form.zone, nombre: form.nombre, dni: form.dni, tel: form.tel, asesor: "Carlos R.", metodo: form.metodo, op: form.op, fecha: form.fecha, monto: currentPrice(zoneOf(form.zone)), banco: form.banco, status: "awaiting_terms" };
-    setOrders([o, ...orders]); setSel(code); setOk(false); setTab("cliente");
+    const o = { img: vfile?.img, pdfName: vfile?.pdf ? vfile.name : null, code, zone: form.zone, nombre: form.nombre, dni: form.dni, tel: form.tel, asesor: "Carlos R.", metodo: form.metodo, op: form.op, fecha: form.fecha, monto: currentPrice(zoneOf(form.zone)), banco: form.banco, status: "awaiting_terms" };
+    setOrders([o, ...orders]); setSel(code); setOk(false); setVfile(null); setTab("cliente");
   };
   const emit = (o) => { const n = `${o.factura ? "F001" : "B001"}-${serial}`; setSerial(serial + 1); update(o.code, { doc: n }); setMail({ ...o, doc: n }); };
   const cur = orders.find((o) => o.code === sel);
@@ -92,12 +96,27 @@ export default function Demo() {
               <div className="field"><label>N.º de operación (como sale en el voucher)</label><input value={form.op} onChange={set("op")} /></div>
               <div className="field"><label>Fecha del pago</label><input type="date" value={form.fecha} onChange={set("fecha")} /></div>
             </div>
-            <div className="field"><label>Foto del voucher</label><div className="demo-file">📎 voucher-yape.jpg · adjunto de ejemplo</div></div>
+            <div className="field">
+              <label>Foto del voucher (obligatoria, salvo efectivo)</label>
+              <input type="file" accept="image/*,application/pdf" capture="environment" onChange={(e) => {
+                const f = e.target.files?.[0]; setVerr("");
+                if (!f) return setVfile(null);
+                if (f.size > 5 * 1024 * 1024) { setVerr("El archivo pesa más de 5 MB."); return setVfile(null); }
+                if (!/^image\/|application\/pdf/.test(f.type)) { setVerr("Sube una foto (JPG, PNG, WEBP) o un PDF."); return setVfile(null); }
+                setVfile({ name: f.name, size: f.size, img: f.type.startsWith("image/") ? URL.createObjectURL(f) : null, pdf: f.type === "application/pdf" });
+              }} />
+              <p className="note" style={{ margin: "8px 0 0" }}>Desde el celular abre la cámara para fotografiar el voucher. Máx. 5 MB · JPG, PNG, WEBP o PDF. Los datos del archivo no salen de tu navegador en esta demo.</p>
+              {verr && <p className="err">{verr}</p>}
+              {vfile?.img && <div className="demo-thumb"><img src={vfile.img} alt="Vista previa del voucher" /><span>{vfile.name} · {(vfile.size / 1024).toFixed(0)} KB<br /><button type="button" className="btn ghost" onClick={() => setVfile(null)}>Quitar</button></span></div>}
+              {vfile?.pdf && <p className="demo-file">📄 {vfile.name} · {(vfile.size / 1024).toFixed(0)} KB</p>}
+              {!vfile && <button type="button" className="btn ghost" style={{ marginTop: 10 }} onClick={() => setVfile({ name: "voucher-ejemplo.png", size: 84000, sample: true })}>No tengo una foto: usar voucher de ejemplo</button>}
+              {vfile?.sample && <div className="demo-thumb"><Voucher o={{ ...form, nombre: form.nombre, monto: currentPrice(zoneOf(form.zone)), banco: form.metodo, fecha: form.fecha }} /><span>voucher-ejemplo.png<br /><button type="button" className="btn ghost" onClick={() => setVfile(null)}>Quitar</button></span></div>}
+            </div>
             <label className="check"><input type="checkbox" checked={ok} onChange={(e) => setOk(e.target.checked)} /><span>Confirmo que ya recibí el pago completo del cliente.</span></label>
-            <button className="btn" disabled={!ok}>Registrar y generar link <span aria-hidden>→</span></button>
+            <button className="btn" disabled={!ok || !(vfile || form.metodo === "Efectivo")}>Registrar y generar link <span aria-hidden>→</span></button>
           </form>
           <ul className="demo-rules">
-            <li>El voucher y el n.º de operación son obligatorios (salvo efectivo).</li>
+            <li>El voucher (foto o PDF) y el n.º de operación son obligatorios (salvo efectivo): sin voucher el botón no se activa.</li>
             <li>El sistema rechaza un n.º de operación que ya se usó en otra venta.</li>
             <li>El monto debe coincidir con el precio de la zona.</li>
           </ul>
