@@ -55,3 +55,10 @@
   .word-stack { height: auto; display: grid; gap: .1em; }
   .word, .word:not(:first-child) { position: static; opacity: 1 !important; visibility: visible !important; }
 }
+
+/* Portal del asesor / aceptación */
+.advisor-form { max-width: 640px; display: grid; gap: 4px; margin-top: 28px; }
+.advisor-last { max-width: 640px; margin-top: 32px; padding: 22px; border: 1px dashed var(--violet); }
+.advisor-last code { word-break: break-all; color: #fff; }
+.st-awaiting_terms { color: #f28a1a; }
+.page.admin select { background: transparent; color: inherit; }

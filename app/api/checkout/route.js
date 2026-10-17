@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
-import { newCode, saveOrder, updateOrder, hasPaidDni, pendingRecent } from "@/lib/orders";
+import { newCode, saveOrder, updateOrder, hasPaidDni, pendingRecent, getAdvisor } from "@/lib/orders";
 import { availability } from "@/lib/availability";
 
 const base = () => process.env.BASE_URL || "http://localhost:3100";
@@ -52,7 +52,9 @@ export async function POST(req) {
   const price = currentPrice(zone); // el precio SIEMPRE lo define el servidor
   const code = newCode();
   const now = new Date().toISOString();
+  const adv = b.advisor ? getAdvisor(String(b.advisor)) : null; // venta atribuida al link de un asesor
   const saved = saveOrder({
+    advisorCode: adv?.active ? adv.code : null, advisorName: adv?.active ? adv.name : null,
     code, zone: zone.id, price, currency: "PEN", nombre, dni, telefono, correo, comprobante,
     ruc: comprobante === "factura" ? ruc : null,
     razonSocial: comprobante === "factura" ? razonSocial : null,

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ZONES } from "@/lib/config";
 
-const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", cancelled: "Anulado" };
+const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", cancelled: "Anulado" };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -10,6 +10,9 @@ export default function Admin() {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [zone, setZone] = useState("");
+  const [advisors, setAdvisors] = useState([]);
+  const [na, setNa] = useState({ code: "", name: "", pin: "" });
+  const [aerr, setAerr] = useState("");
 
   async function load(k = key) {
     setErr("");
@@ -17,6 +20,19 @@ export default function Admin() {
     const d = await r.json();
     if (!r.ok) { setErr(d.error || "Error"); setData(null); return; }
     setData(d);
+    loadAdvisors(k);
+  }
+  async function loadAdvisors(k = key) {
+    const r = await fetch("/api/admin/advisors", { headers: { "x-admin-key": k } });
+    if (r.ok) setAdvisors((await r.json()).advisors);
+  }
+  async function advisorAct(body) {
+    setAerr("");
+    const r = await fetch("/api/admin/advisors", { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) return setAerr(d.error || "Error");
+    setAdvisors(d.advisors);
+    if (body.name) setNa({ code: "", name: "", pin: "" });
   }
   async function setStatus(code, status) {
     await fetch(`/api/admin/orders/${code}`, { method: "PATCH", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
@@ -67,7 +83,7 @@ export default function Admin() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Código</th><th>Zona</th><th>Titular</th><th>DNI</th><th>Contacto</th><th>S/</th><th>Estado</th><th>Sistema QR</th><th>Fecha</th><th /></tr></thead>
+              <thead><tr><th>Código</th><th>Zona</th><th>Titular</th><th>DNI</th><th>Contacto</th><th>S/</th><th>Estado</th><th>Origen</th><th>Sistema QR</th><th>Fecha</th><th /></tr></thead>
               <tbody>
                 {rows.map((o) => (
                   <tr key={o.code}>
@@ -78,6 +94,7 @@ export default function Admin() {
                     <td>{o.telefono}<br /><small>{o.correo}</small></td>
                     <td>{o.price}</td>
                     <td><span className={`st st-${o.status}`}>{STATUS[o.status] || o.status}</span></td>
+                    <td><small>{o.advisorName ? `Asesor · ${o.advisorName}` : "Web"}<br />{o.paymentMethod && o.paymentMethod !== "mercadopago" ? o.paymentMethod : ""}</small></td>
                     <td title={o.syncError || ""}><small>{o.syncStatus === "ok" ? "✔ Enviado" : o.syncStatus === "error" ? "✖ Error" : o.syncStatus === "skipped" ? "— Sin config." : "—"}</small></td>
                     <td><small>{new Date(o.createdAt).toLocaleString("es-PE")}</small></td>
                     <td className="acts">
@@ -87,7 +104,35 @@ export default function Admin() {
                     </td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan="10" style={{ textAlign: "center", color: "var(--mute)" }}>Sin pedidos</td></tr>}
+                {!rows.length && <tr><td colSpan="11" style={{ textAlign: "center", color: "var(--mute)" }}>Sin pedidos</td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <h2 style={{ marginTop: 56 }}>Asesores</h2>
+          <p className="note">Cada asesor tiene un link de venta online (<code>/?a=codigo</code>) y un portal (<code>/asesor</code>) con código y PIN para registrar ventas cobradas fuera de la web.</p>
+          <div className="admin-tools">
+            <input placeholder="Código (ej. carlos)" value={na.code} onChange={(e) => setNa({ ...na, code: e.target.value })} />
+            <input placeholder="Nombre" value={na.name} onChange={(e) => setNa({ ...na, name: e.target.value })} />
+            <input placeholder="PIN (4-8 dígitos)" inputMode="numeric" value={na.pin} onChange={(e) => setNa({ ...na, pin: e.target.value })} />
+            <button className="btn ghost" onClick={() => advisorAct(na)}>Crear asesor</button>
+          </div>
+          {aerr && <p className="err">{aerr}</p>}
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Código</th><th>Nombre</th><th>Link de venta</th><th>Estado</th><th /></tr></thead>
+              <tbody>
+                {advisors.map((a) => (
+                  <tr key={a.code}>
+                    <td><b>{a.code}</b></td><td>{a.name}</td><td><small>{a.link}</small></td>
+                    <td>{a.active ? "Activo" : "Inactivo"}</td>
+                    <td className="acts">
+                      <button onClick={() => advisorAct({ code: a.code, active: !a.active })}>{a.active ? "Desactivar" : "Activar"}</button>
+                      <button onClick={() => { const pin = prompt("Nuevo PIN (4-8 dígitos)"); if (pin) advisorAct({ code: a.code, pin }); }}>Cambiar PIN</button>
+                    </td>
+                  </tr>
+                ))}
+                {!advisors.length && <tr><td colSpan="5" style={{ textAlign: "center", color: "var(--mute)" }}>Aún no hay asesores</td></tr>}
               </tbody>
             </table>
           </div>

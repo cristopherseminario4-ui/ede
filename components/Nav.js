@@ -37,7 +37,7 @@ export default function Nav() {
   useEffect(() => { document.body.style.overflow = open ? "hidden" : ""; }, [open]);
 
   const from = currentPrice(ZONES[0]);
-  const showCta = past && path !== "/entradas" && !path.startsWith("/admin") && !path.startsWith("/gracias");
+  const showCta = past && path !== "/entradas" && !path.startsWith("/admin") && !path.startsWith("/gracias") && !path.startsWith("/asesor") && !path.startsWith("/aceptar");
 
   return (
     <>

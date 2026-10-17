@@ -6,6 +6,7 @@ import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import Motion from "@/components/Motion";
 import Cursor from "@/components/Cursor";
+import AdvisorRef from "@/components/AdvisorRef";
 
 const sans = Montserrat({ subsets: ["latin"], variable: "--sans", weight: ["300", "400", "500", "700", "900"] });
 const serif = Playfair_Display({ subsets: ["latin"], variable: "--serif", style: ["italic"], weight: ["400"] });
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
         <Footer />
         <Motion />
         <Cursor />
+        <AdvisorRef />
       </body>
     </html>
   );

@@ -48,7 +48,7 @@ function CheckoutModal({ zone, onClose }) {
     e.preventDefault();
     setErr(""); setBusy(true);
     try {
-      const r = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...f, zone: zone.id }) });
+      const r = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...f, zone: zone.id, advisor: (() => { try { return localStorage.getItem("ede_asesor") || ""; } catch { return ""; } })() }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error al procesar");
       window.location.href = d.url;
