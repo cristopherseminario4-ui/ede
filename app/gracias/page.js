@@ -41,6 +41,7 @@ export default async function Gracias({ searchParams }) {
           <p>Si ya pagaste, escríbenos por WhatsApp con tu comprobante.</p>
         </>
       )}
+      {order.docToken && <p><a className="btn" href={`/c/${order.docToken}`} target="_blank" rel="noreferrer">Descargar mi comprobante {order.docNumber} <span aria-hidden>→</span></a></p>}
       <p><a className="btn ghost" href="/">← Volver al inicio</a></p>
     </main>
   );

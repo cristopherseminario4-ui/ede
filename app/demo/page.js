@@ -8,6 +8,7 @@ const TABS = [
   ["cliente", "2 · Cliente"],
   ["conta", "3 · Contabilidad"],
   ["admin", "4 · Administración"],
+  ["doc", "5 · Comprobante"],
 ];
 const STATUS = {
   awaiting_terms: ["Esperando T&C del cliente", "#f28a1a"],
@@ -15,9 +16,9 @@ const STATUS = {
   paid: ["Pagado · entrada enviada", "#4ade80"],
 };
 const seed = [
-  { code: "EDE26-K7QA", zone: "vip", nombre: "María Quispe Rojas", dni: "45123789", tel: "987 123 456", asesor: "Carlos R.", metodo: "Yape", op: "88213467", fecha: "2026-10-14", monto: 1000, banco: "Yape", status: "paid" },
+  { code: "EDE26-K7QA", zone: "vip", nombre: "María Quispe Rojas", dni: "45123789", tel: "987 123 456", asesor: "Carlos R.", metodo: "Yape", op: "88213467", fecha: "2026-10-14", monto: 1000, banco: "Yape", status: "paid", doc: "B001-118" },
   { code: "EDE26-M3TD", zone: "emprendedor", nombre: "José Huamán Díaz", dni: "70234561", tel: "955 321 098", asesor: "Lucía P.", metodo: "Transferencia", op: "00457712", fecha: "2026-10-15", monto: 150, banco: "BCP", status: "in_review" },
-  { code: "EDE26-P9ZW", zone: "empresarial", nombre: "Inversiones Andes SAC", dni: "20601234", tel: "944 567 123", asesor: "Web · Mercado Pago", metodo: "Mercado Pago", op: "MP 1325578891", fecha: "2026-10-16", monto: 1999, banco: "Tarjeta", status: "paid" },
+  { code: "EDE26-P9ZW", zone: "empresarial", nombre: "Inversiones Andes SAC", dni: "20601234", tel: "944 567 123", asesor: "Web · Mercado Pago", metodo: "Mercado Pago", op: "MP 1325578891", fecha: "2026-10-16", monto: 1999, banco: "Tarjeta", status: "paid", factura: true },
 ];
 const money = (n) => `S/ ${n.toLocaleString("es-PE")}`;
 const zoneOf = (id) => ZONES.find((z) => z.id === id);
@@ -46,6 +47,8 @@ export default function Demo() {
   const [form, setForm] = useState({ zone: "vip", nombre: "Rosa Mendoza Vega", dni: "46789012", tel: "999 888 777", metodo: "Yape", op: "91234567", fecha: new Date().toISOString().slice(0, 10), banco: "Yape" });
   const [ok, setOk] = useState(false);
   const [view, setView] = useState(null);
+  const [mail, setMail] = useState(null);
+  const [serial, setSerial] = useState(119);
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const update = (code, patch) => setOrders((os) => os.map((o) => (o.code === code ? { ...o, ...patch } : o)));
@@ -55,6 +58,7 @@ export default function Demo() {
     const o = { code, zone: form.zone, nombre: form.nombre, dni: form.dni, tel: form.tel, asesor: "Carlos R.", metodo: form.metodo, op: form.op, fecha: form.fecha, monto: currentPrice(zoneOf(form.zone)), banco: form.banco, status: "awaiting_terms" };
     setOrders([o, ...orders]); setSel(code); setOk(false); setTab("cliente");
   };
+  const emit = (o) => { const n = `${o.factura ? "F001" : "B001"}-${serial}`; setSerial(serial + 1); update(o.code, { doc: n }); setMail({ ...o, doc: n }); };
   const cur = orders.find((o) => o.code === sel);
   const pending = orders.filter((o) => o.status === "in_review");
   const totals = ZONES.map((z) => ({ z, n: orders.filter((o) => o.zone === z.id && o.status !== "awaiting_terms").length }));
@@ -181,6 +185,46 @@ export default function Demo() {
           </div>
           <p className="note">Todo se puede filtrar, buscar por DNI y exportar a CSV con el n.º de operación, fecha, monto, entidad y asesor.</p>
         </section>
+      )}
+
+      {tab === "doc" && (
+        <section className="demo-panel">
+          <h2>Contabilidad emite la boleta o factura</h2>
+          <p className="note">Sin API de facturación por ahora: contabilidad entra con su propio usuario, ve las ventas pagadas sin comprobante, emite la boleta o factura donde ya lo hace hoy, y aquí registra la serie, el número y el PDF. El sistema lo envía al correo del cliente.</p>
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Código</th><th>Tipo</th><th>Cliente</th><th>N.º operación</th><th>S/</th><th>Comprobante</th><th /></tr></thead>
+              <tbody>
+                {orders.filter((o) => o.status === "paid").map((o) => (
+                  <tr key={o.code}>
+                    <td><b>{o.code}</b></td><td>{o.factura ? "Factura" : "Boleta"}</td><td>{o.nombre}</td><td>{o.op}</td><td>{o.monto}</td>
+                    <td>{o.doc ? <b>{o.doc} · ✔ enviado al correo</b> : <span className="demo-pill" style={{ "--c": "#f28a1a" }}>Pendiente</span>}</td>
+                    <td className="acts">{!o.doc && <button onClick={() => emit(o)}>Registrar y enviar</button>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {!orders.some((o) => o.status === "paid" && !o.doc) && <p className="note">Todas las ventas pagadas ya tienen comprobante. Confirma otra venta en el paso 3 para seguir.</p>}
+          <ul className="demo-rules">
+            <li>La serie debe coincidir con lo que pidió el cliente: B… para boleta, F… para factura.</li>
+            <li>Hay un botón «CSV para el facturador» con los datos de todas las ventas pendientes.</li>
+            <li>Un usuario propio para contabilidad, separado del sistema de entradas y del panel de administración.</li>
+          </ul>
+        </section>
+      )}
+
+      {mail && (
+        <div className="overlay" onClick={() => setMail(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <button type="button" className="close" onClick={() => setMail(null)} aria-label="Cerrar">×</button>
+            <p className="eyebrow">Correo enviado a {mail.nombre.split(" ")[0].toLowerCase()}@correo.com</p>
+            <h3>Tu comprobante de pago</h3>
+            <p>Hola {mail.nombre}, adjuntamos tu comprobante <b>{mail.doc}</b> por tu entrada <b>Zona {zoneOf(mail.zone).name}</b> ({money(mail.monto)}).</p>
+            <p><span className="btn" style={{ pointerEvents: "none" }}>Descargar comprobante</span></p>
+            <p className="note">Ejemplo de correo. En la web real incluye el PDF adjunto.</p>
+          </div>
+        </div>
       )}
 
       {view && (

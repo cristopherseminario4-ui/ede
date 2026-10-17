@@ -20,7 +20,7 @@ export function middleware(req) {
   }
   const res = NextResponse.next();
   if (process.env.PREVIEW_MODE === "1") res.headers.set("X-Robots-Tag", "noindex, nofollow");
-  if (pathname.startsWith("/gracias") || pathname.startsWith("/asesor") || pathname.startsWith("/aceptar") || pathname.startsWith("/v/") || pathname.startsWith("/demo") || pathname.startsWith("/admin") || pathname.startsWith("/api")) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (pathname.startsWith("/gracias") || pathname.startsWith("/asesor") || pathname.startsWith("/aceptar") || pathname.startsWith("/v/") || pathname.startsWith("/demo") || pathname.startsWith("/contabilidad") || pathname.startsWith("/c/") || pathname.startsWith("/admin") || pathname.startsWith("/api")) res.headers.set("X-Robots-Tag", "noindex, nofollow");
   return res;
 }
 

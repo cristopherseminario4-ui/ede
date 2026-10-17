@@ -13,6 +13,9 @@ export default function Admin() {
   const [advisors, setAdvisors] = useState([]);
   const [na, setNa] = useState({ code: "", name: "", pin: "" });
   const [aerr, setAerr] = useState("");
+  const [staff, setStaff] = useState([]);
+  const [ns, setNs] = useState({ username: "", name: "", password: "" });
+  const [serr, setSerr] = useState("");
 
   async function load(k = key) {
     setErr("");
@@ -21,6 +24,19 @@ export default function Admin() {
     if (!r.ok) { setErr(d.error || "Error"); setData(null); return; }
     setData(d);
     loadAdvisors(k);
+    loadStaff(k);
+  }
+  async function loadStaff(k = key) {
+    const r = await fetch("/api/admin/staff", { headers: { "x-admin-key": k } });
+    if (r.ok) setStaff((await r.json()).staff);
+  }
+  async function staffAct(body) {
+    setSerr("");
+    const r = await fetch("/api/admin/staff", { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) return setSerr(d.error || "Error");
+    setStaff(d.staff);
+    if (body.name) setNs({ username: "", name: "", password: "" });
   }
   async function loadAdvisors(k = key) {
     const r = await fetch("/api/admin/advisors", { headers: { "x-admin-key": k } });
@@ -134,6 +150,33 @@ export default function Admin() {
                   </tr>
                 ))}
                 {!advisors.length && <tr><td colSpan="5" style={{ textAlign: "center", color: "var(--mute)" }}>Aún no hay asesores</td></tr>}
+              </tbody>
+            </table>
+          </div>
+
+          <h2 style={{ marginTop: 56 }}>Usuarios de contabilidad</h2>
+          <p className="note">Entran en <code>/contabilidad</code> con su propio usuario y clave (separado del sistema de entradas y de esta clave de administración). Ahí registran las boletas y facturas y las envían por correo.</p>
+          <div className="admin-tools">
+            <input placeholder="Usuario (ej. maria.conta)" value={ns.username} onChange={(e) => setNs({ ...ns, username: e.target.value })} />
+            <input placeholder="Nombre" value={ns.name} onChange={(e) => setNs({ ...ns, name: e.target.value })} />
+            <input placeholder="Clave (mín. 6)" type="password" value={ns.password} onChange={(e) => setNs({ ...ns, password: e.target.value })} />
+            <button className="btn ghost" onClick={() => staffAct(ns)}>Crear usuario</button>
+          </div>
+          {serr && <p className="err">{serr}</p>}
+          <div className="table-wrap">
+            <table>
+              <thead><tr><th>Usuario</th><th>Nombre</th><th>Estado</th><th /></tr></thead>
+              <tbody>
+                {staff.map((s) => (
+                  <tr key={s.username}>
+                    <td><b>{s.username}</b></td><td>{s.name}</td><td>{s.active ? "Activo" : "Inactivo"}</td>
+                    <td className="acts">
+                      <button onClick={() => staffAct({ username: s.username, active: !s.active })}>{s.active ? "Desactivar" : "Activar"}</button>
+                      <button onClick={() => { const password = prompt("Nueva clave (mín. 6)"); if (password) staffAct({ username: s.username, password }); }}>Cambiar clave</button>
+                    </td>
+                  </tr>
+                ))}
+                {!staff.length && <tr><td colSpan="4" style={{ textAlign: "center", color: "var(--mute)" }}>Aún no hay usuarios de contabilidad</td></tr>}
               </tbody>
             </table>
           </div>
