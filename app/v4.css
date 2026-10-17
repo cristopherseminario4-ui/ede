@@ -47,3 +47,11 @@
 .ticket .btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.45) 50%, transparent 70%); transform: translateX(-120%); transition: transform .7s; }
 .ticket .btn:hover::after { transform: translateX(120%); }
 @media (max-width: 860px) { .ticket-slot { display: block; } }
+
+/* Palabras fijas: si la animación no corre, se ve solo la primera (nunca superpuestas) */
+.word:not(:first-child) { opacity: 0; visibility: hidden; }
+@media (prefers-reduced-motion: reduce) {
+  .words { height: auto; padding: 96px 0; }
+  .word-stack { height: auto; display: grid; gap: .1em; }
+  .word, .word:not(:first-child) { position: static; opacity: 1 !important; visibility: visible !important; }
+}
