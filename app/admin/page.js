@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ZONES } from "@/lib/config";
 
-const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", cancelled: "Anulado" };
+const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", in_review: "En revisión (contabilidad)", cancelled: "Anulado" };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -83,7 +83,7 @@ export default function Admin() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Código</th><th>Zona</th><th>Titular</th><th>DNI</th><th>Contacto</th><th>S/</th><th>Estado</th><th>Origen</th><th>Sistema QR</th><th>Fecha</th><th /></tr></thead>
+              <thead><tr><th>Código</th><th>Zona</th><th>Titular</th><th>DNI</th><th>Contacto</th><th>S/</th><th>Estado</th><th>Origen</th><th>Comprobante</th><th>Sistema QR</th><th>Fecha</th><th /></tr></thead>
               <tbody>
                 {rows.map((o) => (
                   <tr key={o.code}>
@@ -95,6 +95,7 @@ export default function Admin() {
                     <td>{o.price}</td>
                     <td><span className={`st st-${o.status}`}>{STATUS[o.status] || o.status}</span></td>
                     <td><small>{o.advisorName ? `Asesor · ${o.advisorName}` : "Web"}<br />{o.paymentMethod && o.paymentMethod !== "mercadopago" ? o.paymentMethod : ""}</small></td>
+                    <td><small>{o.voucherToken ? <a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a> : o.manualRef || "—"}</small></td>
                     <td title={o.syncError || ""}><small>{o.syncStatus === "ok" ? "✔ Enviado" : o.syncStatus === "error" ? "✖ Error" : o.syncStatus === "skipped" ? "— Sin config." : "—"}</small></td>
                     <td><small>{new Date(o.createdAt).toLocaleString("es-PE")}</small></td>
                     <td className="acts">
@@ -104,7 +105,7 @@ export default function Admin() {
                     </td>
                   </tr>
                 ))}
-                {!rows.length && <tr><td colSpan="11" style={{ textAlign: "center", color: "var(--mute)" }}>Sin pedidos</td></tr>}
+                {!rows.length && <tr><td colSpan="12" style={{ textAlign: "center", color: "var(--mute)" }}>Sin pedidos</td></tr>}
               </tbody>
             </table>
           </div>

@@ -14,9 +14,10 @@ export async function POST(req) {
 
   if (order.status === "awaiting_terms") {
     const now = new Date().toISOString();
-    const paid = updateOrder(order.code, { status: "paid", paidAt: now, acceptedAt: now, acceptedIp: clientIp(req) });
-    await syncOrderToDjango(paid);
+    // El pago lo recibió el asesor: pasa a revisión de contabilidad (con su comprobante) antes de emitir la entrada
+    const accepted = updateOrder(order.code, { status: "in_review", acceptedAt: now, acceptedIp: clientIp(req) });
+    await syncOrderToDjango(accepted);
   }
   const fresh = getOrderByAcceptToken(order.acceptToken);
-  return NextResponse.json({ ok: true, passUrl: `/gracias?t=${fresh.publicToken}` });
+  return NextResponse.json({ ok: true, review: fresh.status === "in_review" });
 }

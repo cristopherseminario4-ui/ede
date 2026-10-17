@@ -18,7 +18,7 @@ export default async function Aceptar({ params }) {
       </main>
     );
 
-  const done = order.status === "paid";
+  const done = order.status === "paid" || order.status === "in_review";
   return (
     <main className="page narrow">
       <p className="eyebrow">{done ? "Entrada confirmada" : "Último paso"}</p>

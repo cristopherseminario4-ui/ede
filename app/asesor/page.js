@@ -4,7 +4,8 @@ import { ZONES, currentPrice } from "@/lib/config";
 
 const METODOS = [["yape", "Yape"], ["plin", "Plin"], ["transferencia", "Transferencia"], ["deposito", "Depósito"], ["efectivo", "Efectivo"]];
 const EMPTY = { zone: "emprendedor", nombre: "", dni: "", telefono: "", correo: "", comprobante: "boleta", ruc: "", razonSocial: "", metodoPago: "yape", referencia: "", pagoRecibido: false };
-const STATUS = { awaiting_terms: "Esperando T&C", paid: "Entrada emitida", cancelled: "Anulada" };
+const MAX_MB = 5;
+const STATUS = { awaiting_terms: "Esperando T&C", in_review: "En revisión de contabilidad", paid: "Entrada emitida", cancelled: "Anulada" };
 
 export default function Asesor() {
   const [auth, setAuth] = useState({ code: "", pin: "" });
@@ -28,9 +29,18 @@ export default function Asesor() {
     catch (ex) { setErr(ex.message); } finally { setBusy(false); }
   }
   async function refresh() { try { const d = await call({ list: true }); setOrders(d.orders); } catch {} }
+  const [file, setFile] = useState(null);
   async function submit(e) {
     e.preventDefault(); setErr(""); setBusy(true); setLast(null);
-    try { const d = await call(f); setLast(d.order); setF({ ...EMPTY, zone: f.zone }); refresh(); }
+    try {
+      if (file && file.size > MAX_MB * 1024 * 1024) throw new Error(`El comprobante pesa más de ${MAX_MB} MB.`);
+      const fd = new FormData();
+      Object.entries({ ...auth, ...f }).forEach(([k, v]) => fd.append(k, String(v)));
+      if (file) fd.append("voucher", file);
+      const r = await fetch("/api/asesor/ventas", { method: "POST", body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Error");
+      setFile(null); e.target.reset?.(); setLast(d.order); setF({ ...EMPTY, zone: f.zone }); refresh(); }
     catch (ex) { setErr(ex.message); } finally { setBusy(false); }
   }
   const wa = (o) => {
@@ -85,6 +95,8 @@ export default function Asesor() {
             <div className="field"><label>Razón social</label><input value={f.razonSocial} onChange={set("razonSocial")} /></div>
           </div>
         )}
+        <div className="field"><label>Foto del voucher / comprobante {f.metodoPago === "efectivo" ? "(opcional en efectivo)" : "(obligatorio)"}</label>
+          <input type="file" accept="image/*,application/pdf" capture="environment" onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>
         <label className="check"><input type="checkbox" checked={f.pagoRecibido} onChange={set("pagoRecibido")} /><span>Confirmo que ya recibí el pago completo del cliente.</span></label>
         {err && <p className="err" role="alert">{err}</p>}
         <button className="btn" disabled={busy}>{busy ? "Registrando…" : "Registrar y generar link"} <span aria-hidden>→</span></button>

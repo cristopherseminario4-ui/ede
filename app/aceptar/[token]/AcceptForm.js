@@ -5,7 +5,7 @@ export default function AcceptForm({ token, done, terms }) {
   const [ok, setOk] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const [pass, setPass] = useState(null);
+  const [review, setReview] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
@@ -14,15 +14,14 @@ export default function AcceptForm({ token, done, terms }) {
       const r = await fetch("/api/aceptar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, acepta: ok }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "No se pudo confirmar");
-      setPass(d.passUrl);
+      setReview(true);
     } catch (ex) { setErr(ex.message); } finally { setBusy(false); }
   }
 
-  if (done || pass)
+  if (done || review)
     return (
       <>
-        <p>Tu aceptación quedó registrada. Tu entrada oficial con QR llegará a tu correo y a tu WhatsApp.</p>
-        {pass && <p><a className="btn" href={pass}>Ver mi comprobante <span aria-hidden>→</span></a></p>}
+        <p>Tu aceptación quedó registrada. El área de contabilidad verificará tu pago y, apenas lo confirme, tu entrada oficial con QR llegará a tu correo y a tu WhatsApp.</p>
       </>
     );
 
