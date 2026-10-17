@@ -16,7 +16,7 @@ const STATUS = {
   paid: ["Pagado · entrada enviada", "#4ade80"],
 };
 const seed = [
-  { code: "EDE26-K7QA", zone: "vip", nombre: "María Quispe Rojas", dni: "45123789", tel: "987 123 456", asesor: "Carlos R.", metodo: "Yape", op: "88213467", fecha: "2026-10-14", monto: 1000, banco: "Yape", status: "paid", doc: "B001-118" },
+  { code: "EDE26-K7QA", zone: "vip", nombre: "María Quispe Rojas", dni: "45123789", tel: "987 123 456", asesor: "Carlos R.", metodo: "Yape", op: "88213467", fecha: "2026-10-14", monto: 1000, banco: "Yape", status: "paid", doc: "EB01-118" },
   { code: "EDE26-M3TD", zone: "emprendedor", nombre: "José Huamán Díaz", dni: "70234561", tel: "955 321 098", asesor: "Lucía P.", metodo: "Transferencia", op: "00457712", fecha: "2026-10-15", monto: 150, banco: "BCP", status: "in_review" },
   { code: "EDE26-P9ZW", zone: "empresarial", nombre: "Inversiones Andes SAC", dni: "20601234", tel: "944 567 123", asesor: "Web · Mercado Pago", metodo: "Mercado Pago", op: "MP 1325578891", fecha: "2026-10-16", monto: 1999, banco: "Tarjeta", status: "paid", factura: true },
 ];
@@ -62,7 +62,7 @@ export default function Demo() {
     const o = { img: vfile?.img, pdfName: vfile?.pdf ? vfile.name : null, code, zone: form.zone, nombre: form.nombre, dni: form.dni, tel: form.tel, asesor: "Carlos R.", metodo: form.metodo, op: form.op, fecha: form.fecha, monto: currentPrice(zoneOf(form.zone)), banco: form.banco, status: "awaiting_terms" };
     setOrders([o, ...orders]); setSel(code); setOk(false); setVfile(null); setTab("cliente");
   };
-  const emit = (o) => { const n = `${o.factura ? "F001" : "B001"}-${serial}`; setSerial(serial + 1); update(o.code, { doc: n }); setMail({ ...o, doc: n }); };
+  const emit = (o) => { const n = `${o.factura ? "E001" : "EB01"}-${serial}`; setSerial(serial + 1); update(o.code, { doc: n }); setMail({ ...o, doc: n }); };
   const cur = orders.find((o) => o.code === sel);
   const pending = orders.filter((o) => o.status === "in_review");
   const totals = ZONES.map((z) => ({ z, n: orders.filter((o) => o.zone === z.id && o.status !== "awaiting_terms").length }));
@@ -226,7 +226,7 @@ export default function Demo() {
           </div>
           {!orders.some((o) => o.status === "paid" && !o.doc) && <p className="note">Todas las ventas pagadas ya tienen comprobante. Confirma otra venta en el paso 3 para seguir.</p>}
           <ul className="demo-rules">
-            <li>La serie debe coincidir con lo que pidió el cliente: B… para boleta, F… para factura.</li>
+            <li>Contabilidad solo escribe el número: la serie (por ejemplo EB01) ya viene precargada.</li>
             <li>Hay un botón «CSV para el facturador» con los datos de todas las ventas pendientes.</li>
             <li>Un usuario propio para contabilidad, separado del sistema de entradas y del panel de administración.</li>
           </ul>

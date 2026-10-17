@@ -20,9 +20,7 @@ export async function POST(req) {
 
   const docNumber = String(fd.get("docNumber") || "").trim().toUpperCase();
   const docDate = String(fd.get("docDate") || "").trim();
-  if (!/^[BEF][A-Z0-9]{3}-\d{1,8}$/.test(docNumber)) return NextResponse.json({ error: "Escribe la serie y el número, por ejemplo B001-123 o F001-45." }, { status: 400 });
-  if (order.comprobante === "factura" && !docNumber.startsWith("F")) return NextResponse.json({ error: "Esta venta pidió factura: la serie debe empezar con F." }, { status: 400 });
-  if (order.comprobante === "boleta" && !docNumber.startsWith("B")) return NextResponse.json({ error: "Esta venta pidió boleta: la serie debe empezar con B." }, { status: 400 });
+  if (!/^[A-Z0-9]{2,6}-\d{1,10}$/.test(docNumber)) return NextResponse.json({ error: "Escribe la serie y el número, por ejemplo EB01-123." }, { status: 400 });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(docDate) || isNaN(Date.parse(docDate))) return NextResponse.json({ error: "Indica la fecha de emisión." }, { status: 400 });
 
   const file = fd.get("pdf");

@@ -10,7 +10,7 @@ const DEMO_ORDERS = [
   { code: "EDE26-K7QA", zone: "vip", price: 1000, status: "paid", nombre: "María Quispe Rojas", dni: "45123789", correo: "maria@ejemplo.com", comprobante: "boleta", opNumber: "88213467", payDate: "2026-10-14", advisorName: "Carlos R." },
   { code: "EDE26-M3TD", zone: "emprendedor", price: 150, status: "in_review", nombre: "José Huamán Díaz", dni: "70234561", correo: "jose@ejemplo.com", comprobante: "boleta", opNumber: "00457712", payDate: "2026-10-15", advisorName: "Lucía P." },
   { code: "EDE26-P9ZW", zone: "empresarial", price: 1999, status: "paid", nombre: "Inversiones Andes SAC", dni: "20601234", ruc: "20601234567", razonSocial: "INVERSIONES ANDES S.A.C.", correo: "compras@andes.example", comprobante: "factura", opNumber: "MP 1325578891", payDate: "2026-10-16" },
-  { code: "EDE26-T5NB", zone: "emprendedor", price: 150, status: "paid", nombre: "Ana Torres Vega", dni: "41887765", correo: "ana@ejemplo.com", comprobante: "boleta", opNumber: "MP 1325601120", payDate: "2026-10-16", docToken: "demo", docNumber: "B001-117", docDate: "2026-10-16", docBy: "Contabilidad (demo)", docSentAt: "2026-10-16T15:00:00Z" },
+  { code: "EDE26-T5NB", zone: "emprendedor", price: 150, status: "paid", nombre: "Ana Torres Vega", dni: "41887765", correo: "ana@ejemplo.com", comprobante: "boleta", opNumber: "MP 1325601120", payDate: "2026-10-16", docToken: "demo", docNumber: "EB01-117", docDate: "2026-10-16", docBy: "Contabilidad (demo)", docSentAt: "2026-10-16T15:00:00Z" },
 ];
 
 export default function Contabilidad({ demo = false }) {
@@ -132,7 +132,7 @@ export default function Contabilidad({ demo = false }) {
                 {tab === "emitidos" && <td><b>{o.docNumber}</b><br /><small>{o.docDate} · {o.docBy}</small><br /><a href={`/c/${o.docToken}`} target="_blank" rel="noreferrer">PDF</a>
                   <br /><small>{o.docSentAt ? `✔ Enviado ${o.docSentAt.slice(0, 10)}` : o.docMailError ? `✖ ${o.docMailError.slice(0, 40)}` : "Sin enviar"}</small></td>}
                 <td className="acts">
-                  {tab === "pendientes" ? <button onClick={() => { setOpen(o); setMsg(""); }}>Registrar comprobante</button>
+                  {tab === "pendientes" ? <button onClick={() => { setOpen(o); setMsg(""); setF({ docNumber: o.comprobante === "factura" ? "E001-" : "EB01-", docDate: today(), enviar: true }); }}>Registrar comprobante</button>
                     : <button onClick={() => reenviar(o.code)}>{o.docSentAt ? "Reenviar correo" : "Enviar correo"}</button>}
                 </td>
               </tr>
@@ -149,7 +149,7 @@ export default function Contabilidad({ demo = false }) {
             <h3>{open.comprobante === "factura" ? "Factura" : "Boleta"} · {open.code}</h3>
             <p className="sub">{open.comprobante === "factura" ? `${open.razonSocial} · RUC ${open.ruc}` : `${open.nombre} · DNI ${open.dni}`} · S/ {open.price} · se enviará a {open.correo}</p>
             <div className="row2">
-              <div className="field"><label>Serie y número</label><input required value={f.docNumber} onChange={(e) => setF({ ...f, docNumber: e.target.value })} placeholder={open.comprobante === "factura" ? "F001-123" : "B001-123"} /></div>
+              <div className="field"><label>Serie y número</label><input required value={f.docNumber} onChange={(e) => setF({ ...f, docNumber: e.target.value })} placeholder={open.comprobante === "factura" ? "E001-123" : "EB01-123"} /></div>
               <div className="field"><label>Fecha de emisión</label><input required type="date" value={f.docDate} max={today()} onChange={(e) => setF({ ...f, docDate: e.target.value })} /></div>
             </div>
             <div className="field"><label>PDF de la {open.comprobante === "factura" ? "factura" : "boleta"}</label><input required={!demo} type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>
