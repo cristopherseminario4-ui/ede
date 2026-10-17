@@ -83,7 +83,7 @@ export default function Admin() {
           </div>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Código</th><th>Zona</th><th>Titular</th><th>DNI</th><th>Contacto</th><th>S/</th><th>Estado</th><th>Origen</th><th>Comprobante</th><th>Sistema QR</th><th>Fecha</th><th /></tr></thead>
+              <thead><tr><th>Código</th><th>Zona</th><th>Titular</th><th>DNI</th><th>Contacto</th><th>S/</th><th>Estado</th><th>Origen</th><th>N.º operación / voucher</th><th>Sistema QR</th><th>Fecha</th><th /></tr></thead>
               <tbody>
                 {rows.map((o) => (
                   <tr key={o.code}>
@@ -95,7 +95,7 @@ export default function Admin() {
                     <td>{o.price}</td>
                     <td><span className={`st st-${o.status}`}>{STATUS[o.status] || o.status}</span></td>
                     <td><small>{o.advisorName ? `Asesor · ${o.advisorName}` : "Web"}<br />{o.paymentMethod && o.paymentMethod !== "mercadopago" ? o.paymentMethod : ""}</small></td>
-                    <td><small>{o.voucherToken ? <a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a> : o.manualRef || "—"}</small></td>
+                    <td><small>{o.manualRef || o.mpPaymentId ? <b>{o.manualRef || `MP ${o.mpPaymentId}`}</b> : "—"}{o.payDate ? <><br />{o.payDate} · S/ {o.payAmount}{o.payBank ? ` · ${o.payBank}` : ""}</> : null}{o.voucherToken ? <><br /><a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a></> : null}</small></td>
                     <td title={o.syncError || ""}><small>{o.syncStatus === "ok" ? "✔ Enviado" : o.syncStatus === "error" ? "✖ Error" : o.syncStatus === "skipped" ? "— Sin config." : "—"}</small></td>
                     <td><small>{new Date(o.createdAt).toLocaleString("es-PE")}</small></td>
                     <td className="acts">

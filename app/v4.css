@@ -62,3 +62,20 @@
 .advisor-last code { word-break: break-all; color: #fff; }
 .st-awaiting_terms { color: #f28a1a; }
 .page.admin select { background: transparent; color: inherit; }
+
+/* Demo para gerencia */
+.demo-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 28px 0; }
+.demo-tabs button { padding: 12px 20px; border: 1px solid var(--line); background: transparent; color: var(--mute); font: inherit; font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; cursor: pointer; transition: all .3s; }
+.demo-tabs button.on, .demo-tabs button:hover { color: #fff; border-color: var(--violet); background: rgba(155,77,255,.12); }
+.demo-panel { display: grid; gap: 18px; }
+.demo-panel h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 300; text-transform: none; letter-spacing: -.02em; color: #fff; margin: 0; }
+.demo-rules { color: var(--mute); font-size: .85rem; line-height: 1.8; padding-left: 18px; }
+.demo-file { padding: 14px; border: 1px dashed var(--line); color: #cfc9dc; font-size: .85rem; }
+.demo-pill { display: inline-block; padding: 4px 10px; border: 1px solid var(--c); color: var(--c); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
+.demo-cards { display: grid; gap: 28px; }
+.demo-card { display: grid; grid-template-columns: 240px 1fr; gap: 28px; padding: 24px; border: 1px solid var(--line); }
+.demo-voucher { width: 100%; height: auto; box-shadow: 0 20px 60px -30px #6d28d9; }
+.demo-dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin: 18px 0 24px; }
+.demo-dl dt { font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--mute); }
+.demo-dl dd { margin: 2px 0 0; }
+@media (max-width: 720px) { .demo-card { grid-template-columns: 1fr; } .demo-voucher { max-width: 240px; } }

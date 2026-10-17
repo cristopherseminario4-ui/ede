@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
-import { newCode, saveOrder, hasPaidDni, verifyAdvisor, listOrdersByAdvisor } from "@/lib/orders";
+import { newCode, saveOrder, hasPaidDni, verifyAdvisor, listOrdersByAdvisor, opNumberUsed } from "@/lib/orders";
 import { availability } from "@/lib/availability";
 import { validateBuyer, limited, clientIp } from "@/lib/validate";
 
@@ -22,7 +22,7 @@ function auth(req, b) {
 
 const view = (o) => ({
   code: o.code, zone: o.zone, nombre: o.nombre, telefono: o.telefono, price: o.price, status: o.status,
-  paymentMethod: o.paymentMethod, hasVoucher: !!o.voucherFile, createdAt: o.createdAt, acceptedAt: o.acceptedAt,
+  paymentMethod: o.paymentMethod, opNumber: o.manualRef, hasVoucher: !!o.voucherFile, createdAt: o.createdAt, acceptedAt: o.acceptedAt,
   acceptUrl: o.acceptToken ? `${base()}/aceptar/${o.acceptToken}` : null,
 });
 
@@ -47,7 +47,22 @@ export async function POST(req) {
   const metodo = String(b.metodoPago || "").toLowerCase();
   if (!METODOS.includes(metodo)) return NextResponse.json({ error: "Elige cómo pagó el cliente." }, { status: 400 });
   if (b.pagoRecibido !== true) return NextResponse.json({ error: "Confirma que ya recibiste el pago." }, { status: 400 });
-  const manualRef = String(b.referencia || "").trim().slice(0, 120);
+  // Datos de la operación (los necesita contabilidad para conciliar): n.º de operación, fecha, monto y entidad
+  const manualRef = String(b.referencia || "").trim().slice(0, 60);
+  const payBank = String(b.banco || "").trim().slice(0, 60);
+  const payDate = String(b.fechaPago || "").trim();
+  const payAmount = Number(String(b.montoPagado || "").replace(",", "."));
+  if (metodo !== "efectivo" && !/^[A-Za-z0-9\-_/ ]{4,40}$/.test(manualRef))
+    return NextResponse.json({ error: "Escribe el n.º de operación tal como sale en el voucher (4 a 40 caracteres)." }, { status: 400 });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(payDate) || isNaN(Date.parse(payDate)))
+    return NextResponse.json({ error: "Indica la fecha en que pagó el cliente." }, { status: 400 });
+  const days = (Date.now() - Date.parse(payDate)) / 86400000;
+  if (days < -1 || days > 60) return NextResponse.json({ error: "La fecha de pago no es válida (no puede ser futura ni de hace más de 60 días)." }, { status: 400 });
+  if (!(payAmount > 0)) return NextResponse.json({ error: "Indica el monto que pagó el cliente." }, { status: 400 });
+  if (payAmount !== currentPrice(zone))
+    return NextResponse.json({ error: `El monto debe ser S/ ${currentPrice(zone)} (precio de la zona). Si hay descuento, pide autorización a administración.` }, { status: 400 });
+  if (manualRef && opNumberUsed(metodo, manualRef))
+    return NextResponse.json({ error: "Ese n.º de operación ya fue registrado en otra venta." }, { status: 409 });
 
   if (availability()[zone.id].left <= 0) return NextResponse.json({ error: `La Zona ${zone.name} está agotada.` }, { status: 409 });
   if (hasPaidDni(zone.id, v.value.dni)) return NextResponse.json({ error: "Este documento ya tiene una entrada en esta zona." }, { status: 409 });
@@ -75,7 +90,7 @@ export async function POST(req) {
   order = saveOrder({
     code: newCode(), zone: zone.id, price: currentPrice(zone), currency: "PEN", ...v.value,
     termsVersion: EVENT.termsVersion, acceptedAt: "", status: "awaiting_terms", createdAt: new Date().toISOString(),
-    advisorCode: adv.code, advisorName: adv.name, paymentMethod: metodo, manualRef,
+    advisorCode: adv.code, advisorName: adv.name, paymentMethod: metodo, manualRef, payDate, payAmount, payBank,
     acceptToken: crypto.randomBytes(18).toString("base64url"), voucherFile, voucherToken,
   });
   } catch (e) {

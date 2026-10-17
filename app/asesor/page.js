@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ZONES, currentPrice } from "@/lib/config";
 
 const METODOS = [["yape", "Yape"], ["plin", "Plin"], ["transferencia", "Transferencia"], ["deposito", "Depósito"], ["efectivo", "Efectivo"]];
-const EMPTY = { zone: "emprendedor", nombre: "", dni: "", telefono: "", correo: "", comprobante: "boleta", ruc: "", razonSocial: "", metodoPago: "yape", referencia: "", pagoRecibido: false };
+const EMPTY = { zone: "emprendedor", nombre: "", dni: "", telefono: "", correo: "", comprobante: "boleta", ruc: "", razonSocial: "", metodoPago: "yape", referencia: "", pagoRecibido: false, banco: "", fechaPago: "", montoPagado: "" };
 const MAX_MB = 5;
 const STATUS = { awaiting_terms: "Esperando T&C", in_review: "En revisión de contabilidad", paid: "Entrada emitida", cancelled: "Anulada" };
 
@@ -87,8 +87,13 @@ export default function Asesor() {
         <div className="row2">
           <div className="field"><label>Comprobante</label>
             <select value={f.comprobante} onChange={set("comprobante")}><option value="boleta">Boleta</option><option value="factura">Factura</option></select></div>
-          <div className="field"><label>N.º de operación (opcional)</label><input value={f.referencia} onChange={set("referencia")} /></div>
+          <div className="field"><label>{f.metodoPago === "efectivo" ? "N.º de recibo (opcional)" : "N.º de operación (como sale en el voucher)"}</label><input value={f.referencia} onChange={set("referencia")} required={f.metodoPago !== "efectivo"} /></div>
         </div>
+        <div className="row2">
+          <div className="field"><label>Fecha del pago</label><input type="date" required value={f.fechaPago} onChange={set("fechaPago")} max={new Date().toISOString().slice(0, 10)} /></div>
+          <div className="field"><label>Monto pagado (S/)</label><input required inputMode="decimal" value={f.montoPagado} onChange={set("montoPagado")} placeholder={`${currentPrice(ZONES.find((z) => z.id === f.zone))}`} /></div>
+        </div>
+        <div className="field"><label>Banco / billetera (opcional)</label><input value={f.banco} onChange={set("banco")} placeholder="BCP, Interbank, Yape…" /></div>
         {f.comprobante === "factura" && (
           <div className="row2">
             <div className="field"><label>RUC</label><input value={f.ruc} onChange={set("ruc")} inputMode="numeric" /></div>
@@ -119,7 +124,7 @@ export default function Asesor() {
           <tbody>
             {orders.map((o) => (
               <tr key={o.code}>
-                <td><b>{o.code}</b></td><td>{o.zone}</td><td>{o.nombre}<br /><small>{o.telefono}</small></td><td>{o.price}</td>
+                <td><b>{o.code}</b><br /><small>{o.opNumber ? `Op. ${o.opNumber}` : ""}</small></td><td>{o.zone}</td><td>{o.nombre}<br /><small>{o.telefono}</small></td><td>{o.price}</td>
                 <td><span className={`st st-${o.status}`}>{STATUS[o.status] || o.status}</span></td>
                 <td className="acts">
                   {o.status === "awaiting_terms" && <><a href={wa(o)} target="_blank" rel="noreferrer"><button>Reenviar</button></a><button onClick={() => copy(o.acceptUrl)}>Copiar link</button></>}

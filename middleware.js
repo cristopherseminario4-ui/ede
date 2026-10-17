@@ -12,12 +12,15 @@ export function middleware(req) {
     url.pathname = "/admin";
     return NextResponse.rewrite(url);
   }
+  // La demostración para gerencia solo existe en la vista previa (PREVIEW_MODE=1) o en local
+  if (prod && process.env.PREVIEW_MODE !== "1" && (pathname === "/demo" || pathname.startsWith("/demo/")))
+    return new NextResponse("Not found", { status: 404 });
   if (prod && (pathname === "/admin" || pathname.startsWith("/admin/"))) {
     return new NextResponse("Not found", { status: 404 });
   }
   const res = NextResponse.next();
   if (process.env.PREVIEW_MODE === "1") res.headers.set("X-Robots-Tag", "noindex, nofollow");
-  if (pathname.startsWith("/gracias") || pathname.startsWith("/asesor") || pathname.startsWith("/aceptar") || pathname.startsWith("/v/") || pathname.startsWith("/admin") || pathname.startsWith("/api")) res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (pathname.startsWith("/gracias") || pathname.startsWith("/asesor") || pathname.startsWith("/aceptar") || pathname.startsWith("/v/") || pathname.startsWith("/demo") || pathname.startsWith("/admin") || pathname.startsWith("/api")) res.headers.set("X-Robots-Tag", "noindex, nofollow");
   return res;
 }
 

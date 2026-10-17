@@ -13,7 +13,7 @@ const esc = (v) => {
 export async function GET(req) {
   const denied = requireAdmin(req);
   if (denied) return denied;
-  const cols = ["code", "zone", "price", "status", "nombre", "dni", "telefono", "correo", "comprobante", "ruc", "razonSocial", "termsVersion", "acceptedAt", "createdAt", "paidAt"];
+  const cols = ["code", "zone", "price", "status", "nombre", "dni", "telefono", "correo", "advisorName", "paymentMethod", "manualRef", "payDate", "payAmount", "payBank", "mpPaymentId", "comprobante", "ruc", "razonSocial", "termsVersion", "acceptedAt", "createdAt", "paidAt"];
   const rows = listOrders().map((o) => cols.map((c) => esc(o[c])).join(","));
   const csv = "﻿" + [cols.join(","), ...rows].join("\n");
   return new NextResponse(csv, {
