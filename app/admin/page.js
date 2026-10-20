@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ZONES } from "@/lib/config";
 
 const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", in_review: "En revisión (contabilidad)", expired: "Vencido", separated: "Separada (con saldo)", cancelled: "Anulado" };
@@ -18,64 +18,74 @@ export default function Admin() {
   const [serr, setSerr] = useState("");
   const [recs, setRecs] = useState([]);
 
-  async function load(k = key) {
+  // Al abrir o recargar: si la sesión (cookie) sigue vigente, entra directo
+  useEffect(() => { load("", true); }, []);
+  async function login(e) {
+    e.preventDefault(); setErr("");
+    const r = await fetch("/api/admin/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return setErr(d.error || "Error");
+    setKey(""); load("");
+  }
+  async function logout() { await fetch("/api/admin/session", { method: "DELETE" }); setData(null); }
+  async function load(k = key, silent = false) {
     setErr("");
-    const r = await fetch("/api/admin/orders", { headers: { "x-admin-key": k } });
-    const d = await r.json();
-    if (!r.ok) { setErr(d.error || "Error"); setData(null); return; }
+    const r = await fetch("/api/admin/orders", { headers: k ? { "x-admin-key": k } : {} });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) { if (!silent) setErr(d.error || "Error"); setData(null); return; }
     setData(d);
     loadAdvisors(k);
     loadStaff(k);
     loadRecs(k);
   }
   async function loadRecs(k = key) {
-    const r = await fetch("/api/admin/complaints", { headers: { "x-admin-key": k } });
+    const r = await fetch("/api/admin/complaints", { headers: k ? { "x-admin-key": k } : {} });
     if (r.ok) setRecs((await r.json()).complaints);
   }
   async function answerRec(id) {
     const respuesta = prompt("Respuesta para el consumidor (se envía a su correo):");
     if (!respuesta) return;
-    const r = await fetch("/api/admin/complaints", { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ id, respuesta }) });
+    const r = await fetch("/api/admin/complaints", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, respuesta }) });
     const d = await r.json();
     if (!r.ok) return alert(d.error || "Error");
     if (!d.correoEnviado) alert("Respuesta guardada, pero el correo no se pudo enviar (¿SMTP sin configurar?). Envíala manualmente.");
     loadRecs();
   }
   async function loadStaff(k = key) {
-    const r = await fetch("/api/admin/staff", { headers: { "x-admin-key": k } });
+    const r = await fetch("/api/admin/staff", { headers: k ? { "x-admin-key": k } : {} });
     if (r.ok) setStaff((await r.json()).staff);
   }
   async function staffAct(body) {
     setSerr("");
-    const r = await fetch("/api/admin/staff", { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch("/api/admin/staff", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) return setSerr(d.error || "Error");
     setStaff(d.staff);
     if (body.name) setNs({ username: "", name: "", password: "" });
   }
   async function loadAdvisors(k = key) {
-    const r = await fetch("/api/admin/advisors", { headers: { "x-admin-key": k } });
+    const r = await fetch("/api/admin/advisors", { headers: k ? { "x-admin-key": k } : {} });
     if (r.ok) setAdvisors((await r.json()).advisors);
   }
   async function advisorAct(body) {
     setAerr("");
-    const r = await fetch("/api/admin/advisors", { method: "POST", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const r = await fetch("/api/admin/advisors", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) return setAerr(d.error || "Error");
     setAdvisors(d.advisors);
     if (body.name) setNa({ code: "", name: "", pin: "" });
   }
   async function setStatus(code, status) {
-    const r = await fetch(`/api/admin/orders/${code}`, { method: "PATCH", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    const r = await fetch(`/api/admin/orders/${code}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     if (!r.ok) alert((await r.json().catch(() => ({}))).error || "No se pudo cambiar el estado");
     load();
   }
   async function resync(code) {
-    await fetch(`/api/admin/orders/${code}/sync`, { method: "POST", headers: { "x-admin-key": key } });
+    await fetch(`/api/admin/orders/${code}/sync`, { method: "POST", headers: {} });
     load();
   }
   async function exportCsv() {
-    const r = await fetch("/api/admin/export", { headers: { "x-admin-key": key } });
+    const r = await fetch("/api/admin/export", { headers: {} });
     const url = URL.createObjectURL(await r.blob());
     const a = document.createElement("a"); a.href = url; a.download = "pedidos-ede.csv"; a.click(); URL.revokeObjectURL(url);
   }
@@ -89,7 +99,7 @@ export default function Admin() {
       <p className="eyebrow">Panel interno</p>
       <h1>Pedidos</h1>
       {!data ? (
-        <form onSubmit={(e) => { e.preventDefault(); load(); }} className="admin-login">
+        <form onSubmit={login} className="admin-login">
           <div className="field"><label>Clave de administración</label><input type="password" value={key} onChange={(e) => setKey(e.target.value)} autoFocus /></div>
           {err && <p className="err">{err}</p>}
           <button className="btn">Entrar <span aria-hidden>→</span></button>
@@ -112,6 +122,7 @@ export default function Admin() {
             </select>
             <button className="btn ghost" onClick={() => load()}>Actualizar</button>
             <button className="btn ghost" onClick={exportCsv}>Exportar CSV</button>
+            <button className="btn ghost" onClick={logout}>Salir</button>
           </div>
           <div className="table-wrap">
             <table>

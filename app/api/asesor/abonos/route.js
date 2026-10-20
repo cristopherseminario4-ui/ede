@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { advisorAuth } from "@/lib/advisor-auth";
 import { getOrder, updateOrder, verifyAdvisor, opNumberUsed, addAbono, paidSoFar, listAbonos } from "@/lib/orders";
 import { syncAbonosOfOrder } from "@/lib/django";
 import { limited, clientIp, tooLarge, accountLocked, registerFail, clearFails } from "@/lib/validate";
@@ -9,20 +10,10 @@ import { limited, clientIp, tooLarge, accountLocked, registerFail, clearFails } 
 const VOUCHER_DIR = path.join(process.cwd(), "data", "vouchers");
 const METODOS = ["yape", "plin", "transferencia", "efectivo", "deposito"];
 
-function auth(req) {
-  const code = String(req.headers.get("x-adv-code") || "").trim().toLowerCase().slice(0, 30);
-  const pin = String(req.headers.get("x-adv-pin") || "").slice(0, 12);
-  if (limited(`adv:${clientIp(req)}`, 20) || accountLocked(`adv:${code}`))
-    return { res: NextResponse.json({ error: "Demasiados intentos. Espera unos minutos." }, { status: 429 }) };
-  const adv = verifyAdvisor(code, pin);
-  if (!adv) { registerFail(`adv:${code}`); return { res: NextResponse.json({ error: "Código o PIN incorrecto." }, { status: 401 }) }; }
-  clearFails(`adv:${code}`);
-  return { adv };
-}
 
 // Registra un abono (pago siguiente) de una entrada separada. Al completar el total, Django confirma y envía la entrada.
 export async function POST(req) {
-  const { adv, res } = auth(req);
+  const { adv, res } = advisorAuth(req);
   if (res) return res;
   const big = tooLarge(req, 6 * 1024 * 1024);
   if (big) return big;

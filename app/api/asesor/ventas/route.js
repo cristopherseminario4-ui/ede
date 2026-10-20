@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { advisorAuth } from "@/lib/advisor-auth";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
 import { newCode, saveOrder, hasPaidDni, expireStale, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday, addAbono, paidSoFar } from "@/lib/orders";
 import { availability } from "@/lib/availability";
@@ -16,17 +17,6 @@ const DAILY_MAX = Number(process.env.ADVISOR_DAILY_MAX || 40);
 // Separación: pago mínimo para reservar la entrada (el resto se completa con abonos)
 const SEP_MIN = Number(process.env.SEPARACION_MIN || 50);
 
-// Autenticación del asesor por cabeceras (x-adv-code / x-adv-pin), ANTES de leer el cuerpo. Nunca en la URL.
-function auth(req) {
-  const code = String(req.headers.get("x-adv-code") || "").trim().toLowerCase().slice(0, 30); // igual que la verificación
-  const pin = String(req.headers.get("x-adv-pin") || "").slice(0, 12);
-  if (limited(`adv:${clientIp(req)}`, 20) || accountLocked(`adv:${code}`))
-    return { res: NextResponse.json({ error: "Demasiados intentos. Espera unos minutos." }, { status: 429 }) };
-  const adv = verifyAdvisor(code, pin);
-  if (!adv) { registerFail(`adv:${code}`); return { res: NextResponse.json({ error: "Código o PIN incorrecto." }, { status: 401 }) }; }
-  clearFails(`adv:${code}`);
-  return { adv };
-}
 
 const view = (o) => ({
   code: o.code, zone: o.zone, nombre: o.nombre, telefono: o.telefono, price: o.price, status: o.status,
@@ -37,7 +27,7 @@ const view = (o) => ({
 
 // Crea una venta manual: queda "esperando T&C" hasta que el propio cliente los acepte.
 export async function POST(req) {
-  const { adv, res } = auth(req);
+  const { adv, res } = advisorAuth(req);
   if (res) return res;
   const multipart = (req.headers.get("content-type") || "").includes("multipart/form-data");
   const big = tooLarge(req, multipart ? 6 * 1024 * 1024 : 4_000);

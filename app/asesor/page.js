@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ZONES, currentPrice } from "@/lib/config";
 
 const METODOS = [["yape", "Yape"], ["plin", "Plin"], ["transferencia", "Transferencia"], ["deposito", "Depósito"], ["efectivo", "Efectivo"]];
@@ -26,7 +26,7 @@ export default function Asesor() {
       const fd = new FormData();
       Object.entries({ ...ab, code: abFor.code }).forEach(([k, v]) => fd.append(k, String(v)));
       if (abFile) fd.append("voucher", abFile);
-      const r = await fetch("/api/asesor/abonos", { method: "POST", headers: { "x-adv-code": auth.code, "x-adv-pin": auth.pin }, body: fd });
+      const r = await fetch("/api/asesor/abonos", { method: "POST", body: fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error");
       setAbMsg(d.status === "paid" ? "✔ Pago completo: el sistema envía la entrada con QR al cliente." : `✔ Abono registrado. Saldo pendiente: S/ ${d.saldo}`);
@@ -36,16 +36,24 @@ export default function Asesor() {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   async function call(body) {
-    const r = await fetch("/api/asesor/ventas", { method: "POST", headers: { "Content-Type": "application/json", "x-adv-code": auth.code, "x-adv-pin": auth.pin }, body: JSON.stringify(body) });
+    const r = await fetch("/api/asesor/ventas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "Error");
     return d;
   }
+  // Al abrir o recargar: si la sesión (cookie) sigue vigente, entra directo
+  useEffect(() => { call({ list: true }).then((d) => { setMe(d.advisor); setOrders(d.orders); }).catch(() => {}); }, []);
   async function login(e) {
     e.preventDefault(); setErr(""); setBusy(true);
-    try { const d = await call({ list: true }); setMe(d.advisor); setOrders(d.orders); }
-    catch (ex) { setErr(ex.message); } finally { setBusy(false); }
+    try {
+      const r = await fetch("/api/asesor/session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(auth) });
+      const s = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(s.error || "Error");
+      setAuth({ code: "", pin: "" });
+      const d = await call({ list: true }); setMe(d.advisor); setOrders(d.orders);
+    } catch (ex) { setErr(ex.message); } finally { setBusy(false); }
   }
+  async function logout() { await fetch("/api/asesor/session", { method: "DELETE" }); setMe(null); setOrders([]); }
   async function refresh() { try { const d = await call({ list: true }); setOrders(d.orders); } catch {} }
   const [file, setFile] = useState(null);
   async function submit(e) {
@@ -55,7 +63,7 @@ export default function Asesor() {
       const fd = new FormData();
       Object.entries(f).forEach(([k, v]) => fd.append(k, String(v)));
       if (file) fd.append("voucher", file);
-      const r = await fetch("/api/asesor/ventas", { method: "POST", headers: { "x-adv-code": auth.code, "x-adv-pin": auth.pin }, body: fd });
+      const r = await fetch("/api/asesor/ventas", { method: "POST", body: fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error");
       setFile(null); e.target.reset?.(); setLast(d.order); setF({ ...EMPTY, zone: f.zone }); refresh(); }
@@ -160,7 +168,7 @@ export default function Asesor() {
           </tbody>
         </table>
       </div>
-      <p><button className="btn ghost" onClick={refresh}>Actualizar</button></p>
+      <p><button className="btn ghost" onClick={refresh}>Actualizar</button> <button className="btn ghost" onClick={logout}>Salir</button></p>
 
       {abFor && (
         <div className="overlay" onClick={(e) => e.target === e.currentTarget && setAbFor(null)}>
