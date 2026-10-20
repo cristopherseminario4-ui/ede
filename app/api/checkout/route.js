@@ -76,7 +76,8 @@ export async function POST(req) {
     signal: AbortSignal.timeout(12_000),
     body: JSON.stringify({
       items: [{ id: zone.id, title: `${EVENT.short} · Entrada ${zone.name}`, quantity: 1, unit_price: price, currency_id: "PEN" }],
-      payer: { name: nombre, email: correo },
+      // En modo de prueba no se envía el comprador: el sandbox de Mercado Pago falla con correos reales
+      payer: mpSandbox() ? undefined : { name: nombre, email: correo },
       external_reference: code,
       expires: true,
       expiration_date_to: new Date(Date.now() + HOLD_MIN * 60 * 1000).toISOString(),
