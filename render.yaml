@@ -49,10 +49,10 @@ services:
       - key: DJANGO_API_KEY
         sync: false
       - key: DJANGO_EVENTO_ID
-        sync: false
+        value: "4"  # El Despertar del Emprendedor 2.0 en el sistema de entradas
       - key: N8N_DRIVE_URL
         value: https://marketingvh.app.n8n.cloud/webhook/ede-archivo-drive
       - key: N8N_DRIVE_TOKEN
         sync: false
       - key: DJANGO_TARIFAS
-        value: '{"emprendedor":"EMPRENDEDOR","vip":"VIP","empresarial":"EMPRESARIAL"}'
+        value: '{"emprendedor":"EMPRENDEDOR","vip":"VIP","empresarial":"FULL ACCESS"}'
