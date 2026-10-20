@@ -36,7 +36,9 @@ export async function POST(req) {
     try { id = (await req.json())?.data?.id; } catch {}
   }
   if (!id || !token || !/^\d{1,20}$/.test(String(id))) return NextResponse.json({ ok: true });
-  if (!firmaValida(req, id)) { console.warn(`[mp] aviso ${id} rechazado: firma inválida o falta la clave del webhook`); return NextResponse.json({ error: "firma inválida" }, { status: 401 }); }
+  // La firma se registra, pero la fuente de verdad es la consulta del pago a Mercado Pago con nuestro token
+  // (estado, monto, moneda y pedido). Mercado Pago también envía avisos sin firma (formato IPN), que deben procesarse.
+  if (!firmaValida(req, id)) console.warn(`[mp] aviso ${id} sin firma válida: se verifica consultando el pago`);
 
   let p;
   try {
