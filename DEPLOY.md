@@ -2,18 +2,26 @@
 
 Estado: la **vista previa** (`PREVIEW_MODE=1`) está en Vercel para aprobar el diseño. Para la web oficial, que cobra y guarda datos, hacen falta los puntos de abajo.
 
-## 1 · Dónde se aloja la web oficial
-La web guarda pedidos, vouchers, comprobantes y reclamos en **una base SQLite y en la carpeta `data/`** del servidor. Eso necesita **disco persistente**.
-- ✔ Render (servicio web + *Persistent Disk*), un VPS o Railway con volumen.
-- ✖ Vercel (serverless): no conserva archivos. Solo sirve para la vista previa.
-- Alternativa futura: pasar a Postgres + almacenamiento de archivos (S3/Cloudflare R2).
+## 1 · Dónde se aloja la web oficial (decidido: subdominio)
+**Dirección: `https://entradas.ede-evento.com`.** El dominio raíz `ede-evento.com` sigue siendo Django (app de puerta, QR, OAuth y mapa): no se toca.
 
-Comando de arranque: `npm run build` y `npm start` (puerto por defecto 3100; en Render usa `$PORT`).
+Para que no se caiga:
+1. **Render, plan Starter (no se duerme) + disco persistente** con `render.yaml` de este repo (servicio `ede-landing`). El disco guarda `data/` y Render toma snapshots diarios.
+2. **Cloudflare delante** (proxy naranja en el registro `entradas`): absorbe picos de tráfico, sirve lo estático desde caché y frena ataques. Con Cloudflare, `TRUSTED_IP_HEADER=cf-connecting-ip`.
+3. **Chequeo de salud** en `/api/health` (Render reinicia si falla). Conviene un monitor externo (UptimeRobot u otro) avisando por WhatsApp o correo.
+4. **Reintentos automáticos**: cada 5 min la web reenvía al sistema de entradas las ventas que fallaron (Django dormido o caído).
+5. **Django también en plan de pago** antes del evento: hoy está en `plan: free` y se duerme; la app de puerta, los QR y la landing dependen de él.
+
+DNS: en el proveedor del dominio (o Cloudflare) crear `CNAME entradas → ede-landing.onrender.com` y añadir el dominio en Render → Settings → Custom Domains.
+
+Vercel queda solo para la **vista previa** (`PREVIEW_MODE=1`): no conserva archivos.
+
+Comando de arranque: `npm run build` y `npm start` (Render pasa el puerto en `$PORT`; en local `npm run start:local` usa el 3100). Node 22.13 o superior.
 
 ## 2 · Variables de entorno (ver `.env.local.example`)
 | Variable | Para qué |
 |---|---|
-| `BASE_URL` | URL pública, ej. `https://ede-evento.com` (links de pago, vouchers, correo) |
+| `BASE_URL` | URL pública: `https://entradas.ede-evento.com` (links de pago, vouchers, correo) |
 | `MP_ACCESS_TOKEN` | Credencial de **producción** de Mercado Pago |
 | `MP_WEBHOOK_SECRET` | Firma de webhooks (Mercado Pago → Webhooks) · URL: `{BASE_URL}/api/webhook` |
 | `ADMIN_PASSWORD` | Clave del panel de administración (mín. 24 caracteres; si es más corta el panel no abre) |
@@ -30,7 +38,7 @@ Comando de arranque: `npm run build` y `npm start` (puerto por defecto 3100; en 
 - En Django definir `API_KEY` (o `API_KEYS_EXTRA`) = la misma clave que `DJANGO_API_KEY`.
 - Las tarifas de Django deben llamarse como indica `DJANGO_TARIFAS` (por defecto EMPRENDEDOR, VIP, EMPRESARIAL).
 - Pagos por Mercado Pago entran confirmados; ventas de asesor entran **pendientes** con el voucher enlazado y contabilidad las confirma en Django.
-- **OJO:** hoy `ede-evento.com` es el sistema Django: la APK de puerta (`https://ede-evento.com/puerta/`), los QR ya emitidos, Google OAuth y el mapa (`/plano/`, `/mapa/`) dependen de ese dominio. **No mover Django de ahí antes del evento.** La landing va en un subdominio (p. ej. `entradas.ede-evento.com`) o en una ruta servida por un proxy (`ede-evento.com/el-despertar-del-emprendedor` con `basePath` en Next).
+- **OJO:** hoy `ede-evento.com` es el sistema Django: la APK de puerta (`https://ede-evento.com/puerta/`), los QR ya emitidos, Google OAuth y el mapa (`/plano/`, `/mapa/`) dependen de ese dominio. **No mover Django de ahí antes del evento.** La landing va en `entradas.ede-evento.com`. Plan de sistema único con Django: ver `PLAN-SISTEMA-UNICO.md`.
 
 ## 4 · Antes de abrir las ventas
 1. Borrar datos de prueba (asesor `prueba`, usuario `conta.prueba`, pedidos y reclamos de prueba) y cambiar la clave de administración.

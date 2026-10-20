@@ -1,0 +1,53 @@
+# Render Blueprint de la landing (entradas.ede-evento.com). Independiente del servicio Django.
+# Plan de pago: no se duerme. Disco persistente para la base, vouchers, comprobantes y reclamos (Render toma snapshots diarios).
+services:
+  - type: web
+    name: ede-landing
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: false
+    disk:
+      name: ede-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 2
+    envVars:
+      - key: NODE_VERSION
+        value: "22.14.0"
+      - key: NODE_ENV
+        value: production
+      - key: BASE_URL
+        value: https://entradas.ede-evento.com
+      - key: TRUSTED_IP_HEADER
+        value: cf-connecting-ip
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ADMIN_PATH
+        sync: false
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: DJANGO_API_URL
+        value: https://ede-evento.com
+      - key: DJANGO_API_KEY
+        sync: false
+      - key: DJANGO_EVENTO_ID
+        sync: false
+      - key: DJANGO_TARIFAS
+        value: '{"emprendedor":"EMPRENDEDOR","vip":"VIP","empresarial":"EMPRESARIAL"}'
