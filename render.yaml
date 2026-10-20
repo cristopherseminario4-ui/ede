@@ -20,7 +20,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: BASE_URL
-        value: https://entradas.ede-evento.com
+        value: https://ede-landing.onrender.com  # cambiar a https://entradas.ede-evento.com cuando exista el CNAME en el DNS
       # Solo si el dominio pasa por Cloudflare (proxy naranja): cf-connecting-ip. Sin Cloudflare, déjala vacía.
       - key: TRUSTED_IP_HEADER
         sync: false
