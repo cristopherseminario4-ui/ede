@@ -127,7 +127,7 @@ export default function Admin() {
                     <td>{o.price}</td>
                     <td><span className={`st st-${o.status}`}>{STATUS[o.status] || o.status}</span></td>
                     <td><small>{o.advisorName ? `Asesor · ${o.advisorName}` : "Web"}<br />{o.paymentMethod && o.paymentMethod !== "mercadopago" ? o.paymentMethod : ""}</small></td>
-                    <td><small>{o.manualRef || o.mpPaymentId ? <b>{o.manualRef || `MP ${o.mpPaymentId}`}</b> : "—"}{o.payDate ? <><br />{o.payDate} · S/ {o.payAmount}{o.payBank ? ` · ${o.payBank}` : ""}</> : null}{o.voucherToken ? <><br /><a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a></> : null}</small></td>
+                    <td><small>{o.manualRef || o.mpPaymentId ? <b>{o.manualRef || `MP ${o.mpPaymentId}`}</b> : "—"}{o.payDate ? <><br />{o.payDate} · S/ {o.payAmount}{o.payBank ? ` · ${o.payBank}` : ""}</> : null}{o.voucherToken ? <><br /><a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a></> : null}{o.voucherDrive ? <> · <a href={o.voucherDrive} target="_blank" rel="noreferrer">Drive</a></> : null}</small></td>
                     <td title={o.syncError || ""}><small>{o.syncStatus === "ok" ? "✔ Enviado" : o.syncStatus === "error" ? "✖ Error" : o.syncStatus === "skipped" ? "— Sin config." : "—"}</small></td>
                     <td><small>{new Date(o.createdAt).toLocaleString("es-PE")}</small></td>
                     <td className="acts">

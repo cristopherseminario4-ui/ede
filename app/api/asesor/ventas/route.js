@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
 import { newCode, saveOrder, hasPaidDni, expireStale, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday } from "@/lib/orders";
 import { availability } from "@/lib/availability";
+import { copyToDrive } from "@/lib/drive";
 import { validateBuyer, limited, clientIp, tooLarge, accountLocked, registerFail, clearFails, signAdvisor } from "@/lib/validate";
 
 const base = () => process.env.BASE_URL || "http://localhost:3100";
@@ -111,5 +112,6 @@ export async function POST(req) {
     if (voucherFile) try { fs.unlinkSync(path.join(VOUCHER_DIR, voucherFile)); } catch {}
     return NextResponse.json({ error: "No se pudo registrar la venta." }, { status: 500 });
   }
+  if (order.voucherFile) copyToDrive(order.code, "voucher"); // no bloquea la respuesta; si falla, se reintenta
   return NextResponse.json({ order: view(order) });
 }

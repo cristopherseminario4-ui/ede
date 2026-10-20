@@ -13,7 +13,7 @@ export async function GET() {
     code: o.code, zone: o.zone, price: o.price, status: o.status, nombre: o.nombre, dni: o.dni, correo: o.correo, telefono: o.telefono,
     comprobante: o.comprobante, ruc: o.ruc, razonSocial: o.razonSocial, paidAt: o.paidAt, payDate: o.payDate,
     opNumber: o.manualRef || (o.mpPaymentId ? `MP ${o.mpPaymentId}` : ""), paymentMethod: o.paymentMethod, payBank: o.payBank, advisorName: o.advisorName,
-    voucherToken: o.voucherToken,
+    voucherToken: o.voucherToken, voucherDrive: o.voucherDrive, docDrive: o.docDrive,
     docNumber: o.docNumber, docDate: o.docDate, docToken: o.docToken, docBy: o.docBy, docSentAt: o.docSentAt, docMailError: o.docMailError,
   }));
   return NextResponse.json({ user: { name: user.name }, orders, mailEnabled: mailEnabled() });

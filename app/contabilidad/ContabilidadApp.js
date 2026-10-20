@@ -128,7 +128,7 @@ export default function Contabilidad({ demo = false }) {
                 <td>{o.comprobante === "factura" ? o.razonSocial : o.nombre}<br /><small>{o.correo}</small></td>
                 <td>{o.comprobante === "factura" ? `RUC ${o.ruc}` : `DNI ${o.dni}`}</td>
                 <td>{o.price}</td>
-                <td><b>{o.opNumber || "—"}</b><br /><small>{o.payDate || ""}{o.advisorName ? ` · ${o.advisorName}` : ""}</small>{o.voucherToken && <><br /><a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a></>}</td>
+                <td><b>{o.opNumber || "—"}</b><br /><small>{o.payDate || ""}{o.advisorName ? ` · ${o.advisorName}` : ""}</small>{o.voucherToken && <><br /><a href={`/v/${o.voucherToken}`} target="_blank" rel="noreferrer">Ver voucher</a></>}{o.voucherDrive && <> · <a href={o.voucherDrive} target="_blank" rel="noreferrer">Drive</a></>}</td>
                 {tab === "emitidos" && <td><b>{o.docNumber}</b><br /><small>{o.docDate} · {o.docBy}</small><br /><a href={`/c/${o.docToken}`} target="_blank" rel="noreferrer">PDF</a>
                   <br /><small>{o.docSentAt ? `✔ Enviado ${o.docSentAt.slice(0, 10)}` : o.docMailError ? `✖ ${o.docMailError.slice(0, 40)}` : "Sin enviar"}</small></td>}
                 <td className="acts">

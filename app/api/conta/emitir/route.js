@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { requireStaff } from "@/lib/staff";
 import { getOrder, updateOrder, docNumberUsed } from "@/lib/orders";
 import { sendComprobanteMail } from "@/lib/mail";
+import { copyToDrive } from "@/lib/drive";
 import { tooLarge } from "@/lib/validate";
 
 const DIR = path.join(process.cwd(), "data", "comprobantes");
@@ -42,7 +43,8 @@ export async function POST(req) {
   }
   if (!docFile) return NextResponse.json({ error: "Sube el PDF de la boleta o factura." }, { status: 400 });
 
-  const saved = updateOrder(order.code, { docNumber, docDate, docFile, docToken, docBy: user.name, docAt: new Date().toISOString(), docMailError: null, docSentAt: null });
+  const saved = updateOrder(order.code, { docNumber, docDate, docFile, docToken, docBy: user.name, docAt: new Date().toISOString(), docMailError: null, docSentAt: null, docDrive: null });
+  copyToDrive(order.code, "comprobante");
   const sent = fd.get("enviar") === "false" ? null : await sendComprobanteMail(saved);
   const final = sent
     ? updateOrder(order.code, sent.ok ? { docSentAt: new Date().toISOString(), docMailError: null } : { docMailError: sent.error })
