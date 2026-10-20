@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { mpToken } from "@/lib/mp";
+import { mpToken, mpWebhookSecret } from "@/lib/mp";
 import { getOrder, updateOrder, firmSold } from "@/lib/orders";
 import { syncOrderToDjango } from "@/lib/django";
 import { ZONES } from "@/lib/config";
@@ -8,7 +8,7 @@ import { limited, clientIp, tooLarge } from "@/lib/validate";
 
 // Firma x-signature de Mercado Pago. En producción es obligatoria (sin secreto, el webhook no procesa nada).
 function firmaValida(req, id) {
-  const secret = process.env.MP_WEBHOOK_SECRET;
+  const secret = mpWebhookSecret();
   if (!secret) return process.env.NODE_ENV !== "production";
   const sig = req.headers.get("x-signature") || "";
   const ts = /ts=([^,]+)/.exec(sig)?.[1];
