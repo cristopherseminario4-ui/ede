@@ -1,4 +1,3 @@
-import QRCode from "qrcode";
 import { getOrderByToken } from "@/lib/orders";
 import { ZONES } from "@/lib/config";
 
@@ -11,7 +10,6 @@ export default async function Gracias({ searchParams }) {
   const zone = order && ZONES.find((z) => z.id === order.zone);
   const demo = sp.demo === "1" || order?.status === "paid-demo";
   const paid = order && (order.status === "paid" || order.status === "paid-demo");
-  const qr = order ? await QRCode.toString(order.code, { type: "svg", margin: 1, width: 220, color: { dark: "#0a0612", light: "#ffffff" } }) : null;
 
   return (
     <main className="page narrow">
@@ -31,9 +29,13 @@ export default async function Gracias({ searchParams }) {
                 <div><dt>Total</dt><dd>S/ {order.price}</dd></div>
               </dl>
             </div>
-            <div className="pass-qr" dangerouslySetInnerHTML={{ __html: qr }} aria-label={`Código QR ${order.code}`} />
+            {/* Sin QR aquí: el QR oficial de ingreso lo envía el sistema de entradas por correo y WhatsApp */}
+            <div className="pass-note">
+              <span className="eyebrow">Tu QR de ingreso</span>
+              <p>{paid ? "Te llega por correo y WhatsApp. Es el único válido en puerta." : "Lo recibirás por correo y WhatsApp cuando se confirme tu pago."}</p>
+            </div>
           </div>
-          <p>Guarda este comprobante. En puerta presenta tu documento. {order.syncStatus === "ok" && !order.syncError ? `Tu entrada oficial con QR de ingreso fue enviada a ${order.correo} y a tu WhatsApp.` : `Enviaremos tu entrada oficial con QR de ingreso a ${order.correo}.`}</p>
+          <p>Guarda este código de pedido. En puerta presenta el QR que te enviamos y tu documento. {order.syncStatus === "ok" && !order.syncError ? `Tu entrada oficial con QR de ingreso fue enviada a ${order.correo} y a tu WhatsApp.` : `Enviaremos tu entrada oficial con QR de ingreso a ${order.correo}.`}</p>
         </>
       ) : (
         <>
