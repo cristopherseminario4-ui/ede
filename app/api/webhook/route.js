@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { mpToken } from "@/lib/mp";
 import { getOrder, updateOrder, firmSold } from "@/lib/orders";
 import { syncOrderToDjango } from "@/lib/django";
 import { ZONES } from "@/lib/config";
@@ -23,7 +24,7 @@ function firmaValida(req, id) {
 // Mercado Pago notifica aquí (requiere URL pública https; en local no se invoca).
 export async function POST(req) {
   if (limited(`wh:${clientIp(req)}`, 120)) return NextResponse.json({ ok: false }, { status: 429 });
-  const token = process.env.MP_ACCESS_TOKEN;
+  const token = mpToken();
   const url = new URL(req.url);
   const topic = url.searchParams.get("type") || url.searchParams.get("topic");
   if (topic && topic !== "payment") return NextResponse.json({ ok: true }); // p. ej. merchant_order

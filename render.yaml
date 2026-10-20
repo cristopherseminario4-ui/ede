@@ -32,6 +32,10 @@ services:
         sync: false
       - key: MP_ACCESS_TOKEN
         sync: false
+      - key: MP_SANDBOX
+        value: "0"  # 1 = pagos de prueba (no cobra). Volver a 0 para vender.
+      - key: MP_ACCESS_TOKEN_TEST
+        sync: false
       - key: MP_WEBHOOK_SECRET
         sync: false
       - key: SMTP_HOST

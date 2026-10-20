@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { mpToken, mpCheckoutUrl, mpSandbox } from "@/lib/mp";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
 import { newCode, saveOrder, updateOrder, hasPaidDni, pendingRecent, pendingInZone, getAdvisor, livePendingByDni } from "@/lib/orders";
 import { validateBuyer, limited, clientIp, tooLarge, verifyAdvisorRef } from "@/lib/validate";
@@ -56,7 +57,7 @@ export async function POST(req) {
     termsVersion: EVENT.termsVersion, acceptedAt: now, status: "pending", createdAt: now,
   });
 
-  const token = process.env.MP_ACCESS_TOKEN;
+  const token = mpToken();
   if (!token) {
     if (process.env.NODE_ENV === "production" && process.env.ALLOW_DEMO !== "1") {
       updateOrder(code, { status: "cancelled" });
@@ -90,7 +91,7 @@ export async function POST(req) {
   });
   } catch { r = null; }
   const data = r ? await r.json().catch(() => ({})) : {};
-  const url = token.startsWith("TEST-") ? data.sandbox_init_point || data.init_point : data.init_point;
+  const url = mpCheckoutUrl(data, token);
   if (!r?.ok || !url) {
     updateOrder(code, { status: "cancelled" }); // libera el cupo si Mercado Pago no respondió
     return NextResponse.json({ error: "No se pudo iniciar el pago. Intenta de nuevo." }, { status: 502 });
