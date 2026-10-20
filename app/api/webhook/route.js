@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { mpToken, mpWebhookSecret } from "@/lib/mp";
+import { mpToken, mpWebhookSecrets } from "@/lib/mp";
 import { getOrder, updateOrder, firmSold } from "@/lib/orders";
 import { syncOrderToDjango } from "@/lib/django";
 import { ZONES } from "@/lib/config";
@@ -8,8 +8,8 @@ import { limited, clientIp, tooLarge } from "@/lib/validate";
 
 // Firma x-signature de Mercado Pago. En producción es obligatoria (sin secreto, el webhook no procesa nada).
 function firmaValida(req, id) {
-  const secret = mpWebhookSecret();
-  if (!secret) return process.env.NODE_ENV !== "production";
+  const secrets = mpWebhookSecrets();
+  if (!secrets.length) return process.env.NODE_ENV !== "production";
   const sig = req.headers.get("x-signature") || "";
   const ts = /ts=([^,]+)/.exec(sig)?.[1];
   const v1 = /v1=([^,]+)/.exec(sig)?.[1];
@@ -17,8 +17,10 @@ function firmaValida(req, id) {
   const tsMs = Number(ts) < 1e12 ? Number(ts) * 1000 : Number(ts);
   if (!tsMs || Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) return false; // evita reenviar notificaciones viejas
   const manifest = `id:${String(id).toLowerCase()};request-id:${req.headers.get("x-request-id") || ""};ts:${ts};`;
-  const h = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
-  try { return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(v1)); } catch { return false; }
+  return secrets.some((secret) => {
+    const h = crypto.createHmac("sha256", secret).update(manifest).digest("hex");
+    try { return crypto.timingSafeEqual(Buffer.from(h), Buffer.from(v1)); } catch { return false; }
+  });
 }
 
 // Mercado Pago notifica aquí (requiere URL pública https; en local no se invoca).
