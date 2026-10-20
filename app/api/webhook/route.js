@@ -34,7 +34,7 @@ export async function POST(req) {
     try { id = (await req.json())?.data?.id; } catch {}
   }
   if (!id || !token || !/^\d{1,20}$/.test(String(id))) return NextResponse.json({ ok: true });
-  if (!firmaValida(req, id)) return NextResponse.json({ error: "firma inválida" }, { status: 401 });
+  if (!firmaValida(req, id)) { console.warn(`[mp] aviso ${id} rechazado: firma inválida o falta la clave del webhook`); return NextResponse.json({ error: "firma inválida" }, { status: 401 }); }
 
   let p;
   try {
@@ -44,6 +44,8 @@ export async function POST(req) {
   } catch { return NextResponse.json({ ok: false }, { status: 502 }); } // Mercado Pago reintentará
 
   const order = p.external_reference && getOrder(p.external_reference);
+  // Registro sin datos personales: estado y motivo de cada pago (útil para ver por qué se rechaza una tarjeta)
+  console.log(`[mp] pago ${id} pedido ${p.external_reference || "-"} estado ${p.status} motivo ${p.status_detail || "-"}`);
   if (order && ["refunded", "charged_back", "cancelled"].includes(p.status) && ["paid", "in_review"].includes(order.status)) {
     updateOrder(order.code, { alert: `Mercado Pago informa ${p.status} (MP ${id}): anular la entrada en el sistema` });
     return NextResponse.json({ ok: true });
