@@ -21,8 +21,9 @@ services:
         value: production
       - key: BASE_URL
         value: https://entradas.ede-evento.com
+      # Solo si el dominio pasa por Cloudflare (proxy naranja): cf-connecting-ip. Sin Cloudflare, déjala vacía.
       - key: TRUSTED_IP_HEADER
-        value: cf-connecting-ip
+        sync: false
       - key: ADMIN_PASSWORD
         generateValue: true
       - key: SESSION_SECRET
