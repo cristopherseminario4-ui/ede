@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createComplaint } from "@/lib/orders";
 import { sendPlainMail } from "@/lib/mail";
 import { EVENT } from "@/lib/config";
-import { limited, clientIp, tooLarge, validEmail } from "@/lib/validate";
+import { limited, clientIp, tooLarge, validEmail, limaDate } from "@/lib/validate";
 
 const t = (v, max) => String(v || "").trim().slice(0, max);
 
@@ -16,6 +16,7 @@ export async function POST(req) {
   const b = await req.json().catch(() => null);
   if (!b) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
 
+  if (b.website) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 }); // campo trampa para bots
   const c = {
     tipo: b.tipo === "queja" ? "queja" : "reclamo",
     nombre: t(b.nombre, 120), docTipo: ["DNI", "CE", "PASAPORTE", "RUC"].includes(b.docTipo) ? b.docTipo : "DNI", docNum: t(b.docNum, 20),
@@ -37,7 +38,7 @@ export async function POST(req) {
   if (b.acepta !== true) return NextResponse.json({ error: "Debes confirmar los datos para enviar." }, { status: 400 });
 
   const rec = createComplaint(c);
-  const copia = `HOJA DE RECLAMACIÓN ${rec.numero}\nFecha: ${rec.createdAt.slice(0, 10)}\n\nProveedor: EL DESPERTAR DEL EMPRENDEDOR S.A.C. · RUC ${EVENT.ruc}\n\nConsumidor: ${rec.nombre} (${rec.docTipo} ${rec.docNum})\nTipo: ${rec.tipo.toUpperCase()}\nBien contratado: ${rec.bien} · ${rec.descBien}${rec.monto != null ? ` · S/ ${rec.monto}` : ""}\n\nDetalle:\n${rec.detalle}\n\nPedido del consumidor:\n${rec.pedido}\n\nRespuesta: en un plazo máximo de 15 días hábiles, al correo que registraste.\nLa formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante INDECOPI.`;
+  const copia = `HOJA DE RECLAMACIÓN ${rec.numero}\nFecha: ${limaDate(rec.createdAt)}\n\nProveedor: EL DESPERTAR DEL EMPRENDEDOR S.A.C. · RUC ${EVENT.ruc}\n\nConsumidor: ${rec.nombre} (${rec.docTipo} ${rec.docNum})\nTipo: ${rec.tipo.toUpperCase()}\nBien contratado: ${rec.bien} · ${rec.descBien}${rec.monto != null ? ` · S/ ${rec.monto}` : ""}\n\nDetalle:\n${rec.detalle}\n\nPedido del consumidor:\n${rec.pedido}\n\nRespuesta: en un plazo máximo de 15 días hábiles, al correo que registraste.\nLa formulación del reclamo no impide acudir a otras vías de solución de controversias ni es requisito previo para interponer una denuncia ante INDECOPI.`;
   const mail = await sendPlainMail({ to: rec.correo, cc: EVENT.email, subject: `Hoja de Reclamación ${rec.numero} · ${EVENT.short}`, text: copia });
   return NextResponse.json({ ok: true, numero: rec.numero, correoEnviado: mail.ok });
 }

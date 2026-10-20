@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { ZONES } from "@/lib/config";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => new Date(Date.now() - 5 * 3600 * 1000).toISOString().slice(0, 10); // fecha de Lima
 
 // Datos ficticios para el entorno de demostración (Vercel, sin base de datos)
 const DEMO_USER = "demo", DEMO_PASS = "demo2026";

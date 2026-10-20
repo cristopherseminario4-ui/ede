@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { csvCell as esc } from "@/lib/validate";
+import { csvCell as esc, limaDate } from "@/lib/validate";
 import { requireStaff } from "@/lib/staff";
 import { listForAccounting } from "@/lib/orders";
 
@@ -14,7 +14,7 @@ export async function GET() {
   const rows = listForAccounting().filter((o) => !o.docToken).map((o) => {
     const total = Number(o.price), base = +(total / 1.18).toFixed(2), igv = +(total - base).toFixed(2);
     const fa = o.comprobante === "factura";
-    return [fa ? "FACTURA" : "BOLETA", fa ? o.ruc : o.dni, fa ? o.razonSocial : o.nombre, "", o.correo, `Entrada ${o.zone} · El Despertar del Emprendedor 2.0`, 1, total.toFixed(2), base.toFixed(2), igv.toFixed(2), o.payDate || (o.paidAt || "").slice(0, 10), o.manualRef || o.mpPaymentId || "", o.code]
+    return [fa ? "FACTURA" : "BOLETA", fa ? o.ruc : o.dni, fa ? o.razonSocial : o.nombre, "", o.correo, `Entrada ${o.zone} · El Despertar del Emprendedor 2.0`, 1, total.toFixed(2), base.toFixed(2), igv.toFixed(2), o.payDate || (o.paidAt ? limaDate(o.paidAt) : ""), o.manualRef || o.mpPaymentId || "", o.code]
       .map(esc).join(",");
   });
   return new NextResponse("﻿" + [cols.join(","), ...rows].join("\n"), {

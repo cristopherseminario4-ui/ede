@@ -33,7 +33,7 @@ export default async function Gracias({ searchParams }) {
             </div>
             <div className="pass-qr" dangerouslySetInnerHTML={{ __html: qr }} aria-label={`Código QR ${order.code}`} />
           </div>
-          <p>Guarda este comprobante. En puerta presenta tu documento. {order.syncStatus === "ok" ? `Tu entrada oficial con QR de ingreso fue enviada a ${order.correo} y a tu WhatsApp.` : `Enviaremos tu entrada oficial con QR de ingreso a ${order.correo}.`}</p>
+          <p>Guarda este comprobante. En puerta presenta tu documento. {order.syncStatus === "ok" && !order.syncError ? `Tu entrada oficial con QR de ingreso fue enviada a ${order.correo} y a tu WhatsApp.` : `Enviaremos tu entrada oficial con QR de ingreso a ${order.correo}.`}</p>
         </>
       ) : (
         <>

@@ -27,6 +27,7 @@ export async function POST(req) {
   const b = await req.json().catch(() => ({}));
   const c = getComplaint(b.id);
   if (!c) return NextResponse.json({ error: "Reclamo no existe" }, { status: 404 });
+  if (c.status === "atendido") return NextResponse.json({ error: "Este reclamo ya fue respondido." }, { status: 409 });
   const respuesta = String(b.respuesta || "").trim();
   if (respuesta.length < 10) return NextResponse.json({ error: "Escribe la respuesta al consumidor." }, { status: 400 });
   const upd = answerComplaint(c.id, respuesta);

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ZONES } from "@/lib/config";
 
-const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", in_review: "En revisión (contabilidad)", cancelled: "Anulado" };
+const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", in_review: "En revisión (contabilidad)", expired: "Vencido", cancelled: "Anulado" };
 
 export default function Admin() {
   const [key, setKey] = useState("");
@@ -66,7 +66,8 @@ export default function Admin() {
     if (body.name) setNa({ code: "", name: "", pin: "" });
   }
   async function setStatus(code, status) {
-    await fetch(`/api/admin/orders/${code}`, { method: "PATCH", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    const r = await fetch(`/api/admin/orders/${code}`, { method: "PATCH", headers: { "x-admin-key": key, "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+    if (!r.ok) alert((await r.json().catch(() => ({}))).error || "No se pudo cambiar el estado");
     load();
   }
   async function resync(code) {
@@ -130,9 +131,12 @@ export default function Admin() {
                     <td title={o.syncError || ""}><small>{o.syncStatus === "ok" ? "✔ Enviado" : o.syncStatus === "error" ? "✖ Error" : o.syncStatus === "skipped" ? "— Sin config." : "—"}</small></td>
                     <td><small>{new Date(o.createdAt).toLocaleString("es-PE")}</small></td>
                     <td className="acts">
-                      {o.status === "paid" && o.syncStatus !== "ok" && <button onClick={() => resync(o.code)}>Reenviar a QR</button>}
-                      {o.status !== "paid" && <button onClick={() => setStatus(o.code, "paid")}>Marcar pagado</button>}
-                      {o.status !== "cancelled" && <button onClick={() => setStatus(o.code, "cancelled")}>Anular</button>}
+                      {["paid", "in_review"].includes(o.status) && o.syncStatus !== "ok" && <button onClick={() => resync(o.code)}>Reenviar a QR</button>}
+                      {o.status === "pending" && <button onClick={() => setStatus(o.code, "paid")}>Marcar pagado</button>}
+                      {o.status === "in_review" && <button onClick={() => setStatus(o.code, "paid")}>Confirmado en el sistema</button>}
+                      {o.status === "awaiting_terms" && o.acceptToken && <button onClick={() => navigator.clipboard?.writeText(`${location.origin}/aceptar/${o.acceptToken}`)}>Copiar link T&C</button>}
+                      {!["cancelled", "expired"].includes(o.status) && <button onClick={() => { if (confirm(`¿Anular ${o.code}?`)) setStatus(o.code, "cancelled"); }}>Anular</button>}
+                      {o.alert && <><br /><small style={{ color: "#f28a1a" }}>⚠ {o.alert}</small></>}
                     </td>
                   </tr>
                 ))}

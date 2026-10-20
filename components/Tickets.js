@@ -38,6 +38,12 @@ function CheckoutModal({ zone, onClose }) {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   useEffect(() => {
+    const back = (e) => e.persisted && setBusy(false); // volver con "atrás" desde Mercado Pago
+    window.addEventListener("pageshow", back);
+    return () => window.removeEventListener("pageshow", back);
+  }, []);
+
+  useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);
     window.__lenis?.stop();
@@ -51,6 +57,7 @@ function CheckoutModal({ zone, onClose }) {
       const r = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...f, zone: zone.id, advisor: (() => { try { return localStorage.getItem("ede_asesor") || ""; } catch { return ""; } })() }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error al procesar");
+      if (!/^https?:\/\//.test(d.url || "")) throw new Error("No se pudo iniciar el pago.");
       window.location.href = d.url;
     } catch (ex) {
       setErr(ex.message); setBusy(false);

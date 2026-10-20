@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
-import { newCode, saveOrder, updateOrder, hasPaidDni, pendingRecent, pendingInZone, getAdvisor } from "@/lib/orders";
-import { validEmail, limited, clientIp, tooLarge, verifyAdvisorRef } from "@/lib/validate";
+import { newCode, saveOrder, updateOrder, hasPaidDni, pendingRecent, pendingInZone, getAdvisor, livePendingByDni } from "@/lib/orders";
+import { validateBuyer, limited, clientIp, tooLarge, verifyAdvisorRef } from "@/lib/validate";
 import { availability } from "@/lib/availability";
 
 const base = () => process.env.BASE_URL || "http://localhost:3100";
@@ -22,21 +22,16 @@ export async function POST(req) {
   const zone = ZONES.find((z) => z.id === b.zone);
   if (!zone) return NextResponse.json({ error: "Zona inválida." }, { status: 400 });
 
-  const nombre = String(b.nombre || "").trim();
-  const dni = String(b.dni || "").trim();
-  const telefono = String(b.telefono || "").trim();
-  const correo = String(b.correo || "").trim();
-  const comprobante = b.comprobante === "factura" ? "factura" : "boleta";
-  const ruc = String(b.ruc || "").trim();
-  const razonSocial = String(b.razonSocial || "").trim();
-
-  if (nombre.length < 3 || nombre.length > 120) return NextResponse.json({ error: "Escribe tu nombre completo." }, { status: 400 });
-  if (!/^[A-Za-z0-9]{8,12}$/.test(dni)) return NextResponse.json({ error: "DNI o documento inválido." }, { status: 400 });
-  if (!/^\+?[0-9 ]{7,15}$/.test(telefono)) return NextResponse.json({ error: "Teléfono inválido." }, { status: 400 });
-  if (!validEmail(correo)) return NextResponse.json({ error: "Correo inválido." }, { status: 400 });
-  if (comprobante === "factura" && (!/^\d{11}$/.test(ruc) || razonSocial.length < 3))
-    return NextResponse.json({ error: "Para factura indica RUC (11 dígitos) y razón social." }, { status: 400 });
+  if (b.website) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 }); // campo trampa para bots
+  const v = validateBuyer(b);
+  if (v.error) return NextResponse.json({ error: v.error }, { status: 400 });
+  const { nombre, dni, telefono, correo, comprobante, ruc, razonSocial } = v.value;
   if (b.acepta !== true) return NextResponse.json({ error: "Debes aceptar los Términos y Condiciones." }, { status: 400 });
+
+  // ¿Ya tiene un pago abierto? Mismo documento y zona → se reutiliza; otra zona → se anula el anterior (nunca dos cobros vivos)
+  const prev = livePendingByDni(dni);
+  if (prev && prev.zone === zone.id && prev.mpUrl) return NextResponse.json({ url: prev.mpUrl });
+  if (prev) updateOrder(prev.code, { status: "cancelled" });
 
   if (availability()[zone.id].left <= 0) return NextResponse.json({ error: `La Zona ${zone.name} está agotada.` }, { status: 409 });
   // Mensaje genérico: no confirma a terceros si un DNI compró
@@ -72,7 +67,9 @@ export async function POST(req) {
     return NextResponse.json({ url: `${base()}/gracias?t=${saved.publicToken}&demo=1` });
   }
 
-  const r = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  let r;
+  try {
+  r = await fetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     signal: AbortSignal.timeout(12_000),
@@ -91,8 +88,13 @@ export async function POST(req) {
       notification_url: base().startsWith("https") ? `${base()}/api/webhook` : undefined,
     }),
   });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) return NextResponse.json({ error: "No se pudo iniciar el pago. Intenta de nuevo." }, { status: 502 });
+  } catch { r = null; }
+  const data = r ? await r.json().catch(() => ({})) : {};
   const url = token.startsWith("TEST-") ? data.sandbox_init_point || data.init_point : data.init_point;
+  if (!r?.ok || !url) {
+    updateOrder(code, { status: "cancelled" }); // libera el cupo si Mercado Pago no respondió
+    return NextResponse.json({ error: "No se pudo iniciar el pago. Intenta de nuevo." }, { status: 502 });
+  }
+  updateOrder(code, { mpUrl: url });
   return NextResponse.json({ url });
 }

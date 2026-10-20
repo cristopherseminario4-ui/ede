@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
-import { newCode, saveOrder, hasPaidDni, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday } from "@/lib/orders";
+import { newCode, saveOrder, hasPaidDni, expireStale, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday } from "@/lib/orders";
 import { availability } from "@/lib/availability";
 import { validateBuyer, limited, clientIp, tooLarge, accountLocked, registerFail, clearFails, signAdvisor } from "@/lib/validate";
 
@@ -50,6 +50,7 @@ export async function POST(req) {
   if (advisorSalesToday(adv.code) >= DAILY_MAX)
     return NextResponse.json({ error: `Llegaste al tope de ${DAILY_MAX} ventas manuales en 24 h. Pide a administración que lo amplíe.` }, { status: 429 });
 
+  expireStale();
   const zone = ZONES.find((z) => z.id === b.zone);
   if (!zone) return NextResponse.json({ error: "Zona inválida." }, { status: 400 });
   const v = validateBuyer(b);
@@ -71,28 +72,31 @@ export async function POST(req) {
   if (!(payAmount > 0)) return NextResponse.json({ error: "Indica el monto que pagó el cliente." }, { status: 400 });
   if (payAmount !== currentPrice(zone))
     return NextResponse.json({ error: `El monto debe ser S/ ${currentPrice(zone)} (precio de la zona). Si hay descuento, pide autorización a administración.` }, { status: 400 });
-  if (manualRef && opNumberUsed(metodo, manualRef))
-    return NextResponse.json({ error: "Ese n.º de operación ya fue registrado en otra venta." }, { status: 409 });
 
-  if (availability()[zone.id].left <= 0) return NextResponse.json({ error: `La Zona ${zone.name} está agotada.` }, { status: 409 });
-  if (hasPaidDni(zone.id, v.value.dni)) return NextResponse.json({ error: "Este documento ya tiene una entrada en esta zona." }, { status: 409 });
 
   // Comprobante: obligatorio salvo efectivo. Solo imagen o PDF, hasta 5 MB, verificado por su firma binaria.
-  let voucherFile = null, voucherToken = null;
+  let voucherFile = null, voucherToken = null, fileBuf = null, fileExt = null;
   const hasFile = file && typeof file === "object" && file.size > 0;
   if (!hasFile && metodo !== "efectivo") return NextResponse.json({ error: "Adjunta la foto del voucher o comprobante de pago." }, { status: 400 });
   if (hasFile) {
     if (file.size > 5 * 1024 * 1024) return NextResponse.json({ error: "El comprobante pesa más de 5 MB." }, { status: 400 });
-    const buf = Buffer.from(await file.arrayBuffer());
+    const buf = Buffer.from(await file.arrayBuffer()); // único await: después todo es síncrono hasta guardar
     const ext = buf.subarray(0, 3).equals(Buffer.from([0xff, 0xd8, 0xff])) ? "jpg"
       : buf.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47])) ? "png"
       : buf.subarray(0, 4).toString() === "%PDF" ? "pdf"
       : buf.subarray(0, 4).toString() === "RIFF" && buf.subarray(8, 12).toString() === "WEBP" ? "webp" : null;
     if (!ext) return NextResponse.json({ error: "El comprobante debe ser una foto (JPG, PNG, WEBP) o un PDF." }, { status: 400 });
+    fileBuf = buf; fileExt = ext;
+  }
+  if (manualRef && opNumberUsed(metodo, manualRef))
+    return NextResponse.json({ error: "Ese n.º de operación ya fue registrado en otra venta." }, { status: 409 });
+  if (availability()[zone.id].left <= 0) return NextResponse.json({ error: `La Zona ${zone.name} está agotada.` }, { status: 409 });
+  if (hasPaidDni(zone.id, v.value.dni)) return NextResponse.json({ error: "Este documento ya tiene una entrada en este evento." }, { status: 409 });
+  if (fileBuf) {
     voucherToken = crypto.randomBytes(18).toString("base64url");
-    voucherFile = `${voucherToken}.${ext}`;
+    voucherFile = `${voucherToken}.${fileExt}`;
     fs.mkdirSync(VOUCHER_DIR, { recursive: true });
-    fs.writeFileSync(path.join(VOUCHER_DIR, voucherFile), buf);
+    fs.writeFileSync(path.join(VOUCHER_DIR, voucherFile), fileBuf);
   }
 
   let order;

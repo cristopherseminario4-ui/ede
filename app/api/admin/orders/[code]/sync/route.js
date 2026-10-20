@@ -10,6 +10,6 @@ export async function POST(req, { params }) {
   const { code } = await params;
   const order = getOrder(code);
   if (!order) return NextResponse.json({ error: "Pedido no existe" }, { status: 404 });
-  if (order.status !== "paid") return NextResponse.json({ error: "Solo se sincronizan pedidos pagados (no demo)" }, { status: 400 });
+  if (!["paid", "in_review"].includes(order.status)) return NextResponse.json({ error: "Solo se sincronizan pedidos pagados o en revisión (no demo)" }, { status: 400 });
   return NextResponse.json({ order: await syncOrderToDjango(order) });
 }

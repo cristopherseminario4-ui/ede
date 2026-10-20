@@ -25,6 +25,8 @@ export async function POST(req) {
   if (limited(`wh:${clientIp(req)}`, 120)) return NextResponse.json({ ok: false }, { status: 429 });
   const token = process.env.MP_ACCESS_TOKEN;
   const url = new URL(req.url);
+  const topic = url.searchParams.get("type") || url.searchParams.get("topic");
+  if (topic && topic !== "payment") return NextResponse.json({ ok: true }); // p. ej. merchant_order
   let id = url.searchParams.get("data.id") || url.searchParams.get("id");
   if (!id) {
     if (tooLarge(req, 20_000)) return NextResponse.json({ ok: false }, { status: 413 });
@@ -41,6 +43,10 @@ export async function POST(req) {
   } catch { return NextResponse.json({ ok: false }, { status: 502 }); } // Mercado Pago reintentará
 
   const order = p.external_reference && getOrder(p.external_reference);
+  if (order && ["refunded", "charged_back", "cancelled"].includes(p.status) && ["paid", "in_review"].includes(order.status)) {
+    updateOrder(order.code, { alert: `Mercado Pago informa ${p.status} (MP ${id}): anular la entrada en el sistema` });
+    return NextResponse.json({ ok: true });
+  }
   // El pago debe estar aprobado y coincidir en monto y moneda con el pedido (el precio lo fijó el servidor)
   if (!order || p.status !== "approved" || p.currency_id !== order.currency || Number(p.transaction_amount) !== Number(order.price))
     return NextResponse.json({ ok: true });
