@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { requireStaff } from "@/lib/staff";
 import { getOrder, updateOrder } from "@/lib/orders";
 import { sendComprobanteMail } from "@/lib/mail";
+import { tooLarge } from "@/lib/validate";
 
 const DIR = path.join(process.cwd(), "data", "comprobantes");
 
@@ -12,6 +13,8 @@ const DIR = path.join(process.cwd(), "data", "comprobantes");
 export async function POST(req) {
   const { user, res } = await requireStaff();
   if (res) return res;
+  const big = tooLarge(req, 6 * 1024 * 1024);
+  if (big) return big;
   const fd = await req.formData().catch(() => null);
   if (!fd) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
 

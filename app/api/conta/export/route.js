@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
+import { csvCell as esc } from "@/lib/validate";
 import { requireStaff } from "@/lib/staff";
 import { listForAccounting } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
-const esc = (v) => {
-  let s = v == null ? "" : String(v);
-  if (/^[=+\-@]/.test(s)) s = "'" + s; // evita inyección de fórmulas al abrir en Excel
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 // CSV de ventas SIN comprobante, con los datos que necesita el facturador (SUNAT / proveedor).
 export async function GET() {

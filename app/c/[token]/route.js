@@ -15,7 +15,7 @@ export async function GET(_req, { params }) {
     return new Response(buf, {
       headers: {
         "Content-Type": "application/pdf", "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow",
-        "Cache-Control": "private, no-store", "Content-Disposition": `inline; filename="Comprobante-${order.docNumber.replace(/[^A-Za-z0-9-]/g, "")}.pdf"`,
+        "Cache-Control": "private, no-store", "Content-Security-Policy": "sandbox; default-src 'none'", "Content-Disposition": `attachment; filename="Comprobante-${order.docNumber.replace(/[^A-Za-z0-9-]/g, "")}.pdf"`,
       },
     });
   } catch { return new Response("No encontrado", { status: 404 }); }

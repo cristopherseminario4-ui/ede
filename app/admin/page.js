@@ -146,7 +146,7 @@ export default function Admin() {
           <div className="admin-tools">
             <input placeholder="Código (ej. carlos)" value={na.code} onChange={(e) => setNa({ ...na, code: e.target.value })} />
             <input placeholder="Nombre" value={na.name} onChange={(e) => setNa({ ...na, name: e.target.value })} />
-            <input placeholder="PIN (4-8 dígitos)" inputMode="numeric" value={na.pin} onChange={(e) => setNa({ ...na, pin: e.target.value })} />
+            <input placeholder="PIN (6-8 dígitos)" inputMode="numeric" value={na.pin} onChange={(e) => setNa({ ...na, pin: e.target.value })} />
             <button className="btn ghost" onClick={() => advisorAct(na)}>Crear asesor</button>
           </div>
           {aerr && <p className="err">{aerr}</p>}
@@ -160,7 +160,7 @@ export default function Admin() {
                     <td>{a.active ? "Activo" : "Inactivo"}</td>
                     <td className="acts">
                       <button onClick={() => advisorAct({ code: a.code, active: !a.active })}>{a.active ? "Desactivar" : "Activar"}</button>
-                      <button onClick={() => { const pin = prompt("Nuevo PIN (4-8 dígitos)"); if (pin) advisorAct({ code: a.code, pin }); }}>Cambiar PIN</button>
+                      <button onClick={() => { const pin = prompt("Nuevo PIN (6-8 dígitos)"); if (pin) advisorAct({ code: a.code, pin }); }}>Cambiar PIN</button>
                     </td>
                   </tr>
                 ))}

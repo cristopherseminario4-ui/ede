@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { getOrderByAcceptToken, updateOrder } from "@/lib/orders";
 import { syncOrderToDjango } from "@/lib/django";
-import { limited, clientIp } from "@/lib/validate";
+import { limited, clientIp, tooLarge } from "@/lib/validate";
 
 // El cliente acepta los T&C desde el link que le envió su asesor. Solo entonces se emite la entrada.
 export async function POST(req) {
+  const big = tooLarge(req, 4_000);
+  if (big) return big;
   if (limited(`acc:${clientIp(req)}`, 12)) return NextResponse.json({ error: "Demasiados intentos. Espera un minuto." }, { status: 429 });
   const b = await req.json().catch(() => ({}));
   const order = getOrderByAcceptToken(String(b.token || ""));

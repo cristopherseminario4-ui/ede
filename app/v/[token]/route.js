@@ -17,7 +17,8 @@ export async function GET(_req, { params }) {
       headers: {
         "Content-Type": TYPES[file.split(".").pop()] || "application/octet-stream",
         "X-Content-Type-Options": "nosniff", "X-Robots-Tag": "noindex, nofollow",
-        "Cache-Control": "private, no-store", "Content-Disposition": "inline",
+        "Cache-Control": "private, no-store", "Content-Security-Policy": "sandbox; default-src 'none'; img-src 'self'",
+        "Content-Disposition": file.endsWith(".pdf") ? `attachment; filename="voucher-${order.code}.pdf"` : "inline",
       },
     });
   } catch { return new Response("No encontrado", { status: 404 }); }

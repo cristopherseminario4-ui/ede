@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createComplaint } from "@/lib/orders";
 import { sendPlainMail } from "@/lib/mail";
 import { EVENT } from "@/lib/config";
-import { limited, clientIp } from "@/lib/validate";
+import { limited, clientIp, tooLarge, validEmail } from "@/lib/validate";
 
 const t = (v, max) => String(v || "").trim().slice(0, max);
 
@@ -10,6 +10,8 @@ const t = (v, max) => String(v || "").trim().slice(0, max);
 export async function POST(req) {
   if (process.env.PREVIEW_MODE === "1")
     return NextResponse.json({ error: "Vista previa de diseño: el Libro de Reclamaciones se activará al publicar la web oficial." }, { status: 503 });
+  const big = tooLarge(req, 20_000);
+  if (big) return big;
   if (limited(`rec:${clientIp(req)}`, 4)) return NextResponse.json({ error: "Demasiados envíos. Espera un minuto." }, { status: 429 });
   const b = await req.json().catch(() => null);
   if (!b) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
@@ -26,7 +28,7 @@ export async function POST(req) {
   if (!/^[A-Za-z0-9]{6,20}$/.test(c.docNum)) return NextResponse.json({ error: "Documento de identidad inválido." }, { status: 400 });
   if (c.domicilio.length < 5) return NextResponse.json({ error: "Indica tu domicilio." }, { status: 400 });
   if (!/^\+?[0-9 ]{7,15}$/.test(c.telefono)) return NextResponse.json({ error: "Teléfono inválido." }, { status: 400 });
-  if (!/^\S+@\S+\.\S+$/.test(c.correo)) return NextResponse.json({ error: "Correo inválido." }, { status: 400 });
+  if (!validEmail(c.correo)) return NextResponse.json({ error: "Correo inválido." }, { status: 400 });
   if (c.menor && c.tutor.length < 3) return NextResponse.json({ error: "Indica el nombre del padre, madre o representante." }, { status: 400 });
   if (c.monto != null && !(c.monto >= 0)) return NextResponse.json({ error: "Monto inválido." }, { status: 400 });
   if (c.descBien.length < 3) return NextResponse.json({ error: "Describe el producto o servicio contratado." }, { status: 400 });

@@ -29,7 +29,7 @@ export default async function Aceptar({ params }) {
           <div className="ticket-code">{order.code}</div>
           <dl>
             <div><dt>Titular</dt><dd>{order.nombre}</dd></div>
-            <div><dt>Documento</dt><dd>{done ? "•".repeat(Math.max(0, order.dni.length - 3)) + order.dni.slice(-3) : order.dni}</dd></div>
+            <div><dt>Documento</dt><dd>{"•".repeat(Math.max(0, order.dni.length - 3)) + order.dni.slice(-3)}</dd></div>
             <div><dt>Días</dt><dd>{zone?.days}</dd></div>
             <div><dt>Pagado</dt><dd>S/ {order.price}</dd></div>
             {order.advisorName && <div><dt>Asesor</dt><dd>{order.advisorName}</dd></div>}

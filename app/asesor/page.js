@@ -18,7 +18,7 @@ export default function Asesor() {
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   async function call(body) {
-    const r = await fetch("/api/asesor/ventas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...auth, ...body }) });
+    const r = await fetch("/api/asesor/ventas", { method: "POST", headers: { "Content-Type": "application/json", "x-adv-code": auth.code, "x-adv-pin": auth.pin }, body: JSON.stringify(body) });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || "Error");
     return d;
@@ -35,9 +35,9 @@ export default function Asesor() {
     try {
       if (file && file.size > MAX_MB * 1024 * 1024) throw new Error(`El comprobante pesa más de ${MAX_MB} MB.`);
       const fd = new FormData();
-      Object.entries({ ...auth, ...f }).forEach(([k, v]) => fd.append(k, String(v)));
+      Object.entries(f).forEach(([k, v]) => fd.append(k, String(v)));
       if (file) fd.append("voucher", file);
-      const r = await fetch("/api/asesor/ventas", { method: "POST", body: fd });
+      const r = await fetch("/api/asesor/ventas", { method: "POST", headers: { "x-adv-code": auth.code, "x-adv-pin": auth.pin }, body: fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "Error");
       setFile(null); e.target.reset?.(); setLast(d.order); setF({ ...EMPTY, zone: f.zone }); refresh(); }
@@ -69,7 +69,7 @@ export default function Asesor() {
       <p className="eyebrow">Asesor · {me.name}</p>
       <h1>Registrar venta</h1>
       <p className="lead">Registra la venta cobrada fuera de la web. El cliente recibe un link para confirmar sus datos y aceptar los Términos y Condiciones: <b>sin esa aceptación no se emite la entrada</b>.</p>
-      <p className="note">Tu link para ventas online (el cliente paga con Mercado Pago): <b>{typeof window !== "undefined" ? window.location.origin : ""}/?a={me.code}</b></p>
+      <p className="note">Tu link para ventas online (el cliente paga con Mercado Pago): <b>{me.link}</b></p>
 
       <form onSubmit={submit} className="advisor-form">
         <div className="row2">

@@ -6,7 +6,7 @@ export default function AdvisorRef() {
   useEffect(() => {
     try {
       const a = new URLSearchParams(window.location.search).get("a");
-      if (a && /^[a-z0-9_-]{3,30}$/i.test(a)) localStorage.setItem("ede_asesor", a.toLowerCase());
+      if (a && /^[a-z0-9_-]{3,30}\.[A-Za-z0-9_-]{10}$/.test(a)) localStorage.setItem("ede_asesor", a);
     } catch {}
   }, []);
   return null;

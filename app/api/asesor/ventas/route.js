@@ -3,20 +3,25 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
-import { newCode, saveOrder, hasPaidDni, verifyAdvisor, listOrdersByAdvisor, opNumberUsed } from "@/lib/orders";
+import { newCode, saveOrder, hasPaidDni, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday } from "@/lib/orders";
 import { availability } from "@/lib/availability";
-import { validateBuyer, limited, clientIp } from "@/lib/validate";
+import { validateBuyer, limited, clientIp, tooLarge, accountLocked, registerFail, clearFails, signAdvisor } from "@/lib/validate";
 
 const base = () => process.env.BASE_URL || "http://localhost:3100";
 const VOUCHER_DIR = path.join(process.cwd(), "data", "vouchers");
 const METODOS = ["yape", "plin", "transferencia", "efectivo", "deposito"];
 
-// Inicio de sesión + operación del asesor (código y PIN en el cuerpo; nunca en la URL)
-function auth(req, b) {
-  if (limited(`adv:${clientIp(req)}:${String(b.code || "").toLowerCase()}`, 10))
-    return { res: NextResponse.json({ error: "Demasiados intentos. Espera un minuto." }, { status: 429 }) };
-  const adv = verifyAdvisor(b.code, b.pin);
-  if (!adv) return { res: NextResponse.json({ error: "Código o PIN incorrecto." }, { status: 401 }) };
+const DAILY_MAX = Number(process.env.ADVISOR_DAILY_MAX || 40);
+
+// Autenticación del asesor por cabeceras (x-adv-code / x-adv-pin), ANTES de leer el cuerpo. Nunca en la URL.
+function auth(req) {
+  const code = String(req.headers.get("x-adv-code") || "").trim().toLowerCase().slice(0, 30); // igual que la verificación
+  const pin = String(req.headers.get("x-adv-pin") || "").slice(0, 12);
+  if (limited(`adv:${clientIp(req)}`, 20) || accountLocked(`adv:${code}`))
+    return { res: NextResponse.json({ error: "Demasiados intentos. Espera unos minutos." }, { status: 429 }) };
+  const adv = verifyAdvisor(code, pin);
+  if (!adv) { registerFail(`adv:${code}`); return { res: NextResponse.json({ error: "Código o PIN incorrecto." }, { status: 401 }) }; }
+  clearFails(`adv:${code}`);
   return { adv };
 }
 
@@ -28,6 +33,11 @@ const view = (o) => ({
 
 // Crea una venta manual: queda "esperando T&C" hasta que el propio cliente los acepte.
 export async function POST(req) {
+  const { adv, res } = auth(req);
+  if (res) return res;
+  const multipart = (req.headers.get("content-type") || "").includes("multipart/form-data");
+  const big = tooLarge(req, multipart ? 6 * 1024 * 1024 : 4_000);
+  if (big) return big;
   // JSON (listar) o multipart (registrar venta con foto del voucher)
   let b = null, file = null;
   if ((req.headers.get("content-type") || "").includes("multipart/form-data")) {
@@ -35,10 +45,10 @@ export async function POST(req) {
     if (fd) { b = Object.fromEntries([...fd.entries()].filter(([, v]) => typeof v === "string")); b.pagoRecibido = b.pagoRecibido === "true"; file = fd.get("voucher"); }
   } else b = await req.json().catch(() => null);
   if (!b) return NextResponse.json({ error: "Solicitud inválida" }, { status: 400 });
-  const { adv, res } = auth(req, b);
-  if (res) return res;
 
-  if (b.list === true) return NextResponse.json({ advisor: adv, orders: listOrdersByAdvisor(adv.code).map(view) });
+  if (b.list === true) return NextResponse.json({ advisor: { ...adv, link: `${base()}/?a=${signAdvisor(adv.code)}` }, orders: listOrdersByAdvisor(adv.code).map(view) });
+  if (advisorSalesToday(adv.code) >= DAILY_MAX)
+    return NextResponse.json({ error: `Llegaste al tope de ${DAILY_MAX} ventas manuales en 24 h. Pide a administración que lo amplíe.` }, { status: 429 });
 
   const zone = ZONES.find((z) => z.id === b.zone);
   if (!zone) return NextResponse.json({ error: "Zona inválida." }, { status: 400 });

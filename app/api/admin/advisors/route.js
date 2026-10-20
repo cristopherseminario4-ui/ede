@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/admin";
 import { createAdvisor, listAdvisors, setAdvisorActive, resetAdvisorPin } from "@/lib/orders";
+import { signAdvisor } from "@/lib/validate";
 
 export const dynamic = "force-dynamic";
 const base = () => process.env.BASE_URL || "http://localhost:3100";
-const withLink = (a) => ({ ...a, link: `${base()}/?a=${a.code}` });
+const withLink = (a) => ({ ...a, link: `${base()}/?a=${signAdvisor(a.code)}` });
 
 export async function GET(req) {
   const denied = requireAdmin(req);

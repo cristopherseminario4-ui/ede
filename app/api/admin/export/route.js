@@ -1,14 +1,10 @@
 import { NextResponse } from "next/server";
+import { csvCell as esc } from "@/lib/validate";
 import { requireAdmin } from "@/lib/admin";
 import { listOrders } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
-const esc = (v) => {
-  let s = v == null ? "" : String(v);
-  if (/^[=+\-@]/.test(s)) s = "'" + s; // evita inyección de fórmulas al abrir en Excel
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
 
 export async function GET(req) {
   const denied = requireAdmin(req);
