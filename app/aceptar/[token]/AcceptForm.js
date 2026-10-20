@@ -14,14 +14,14 @@ export default function AcceptForm({ token, done, terms }) {
       const r = await fetch("/api/aceptar", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token, acepta: ok }) });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || "No se pudo confirmar");
-      setReview(true);
+      setReview(d.separated ? "sep" : true);
     } catch (ex) { setErr(ex.message); } finally { setBusy(false); }
   }
 
   if (done || review)
     return (
       <>
-        <p>Tu aceptación quedó registrada. El área de contabilidad verificará tu pago y, apenas lo confirme, tu entrada oficial con QR llegará a tu correo y a tu WhatsApp.</p>
+        <p>{review === "sep" ? "Tu aceptación quedó registrada y tu separación está reservada. Cuando completes el pago con tu asesor, tu entrada oficial con QR llegará a tu correo y a tu WhatsApp." : "Tu aceptación quedó registrada. El área de contabilidad verificará tu pago y, apenas lo confirme, tu entrada oficial con QR llegará a tu correo y a tu WhatsApp."}</p>
       </>
     );
 

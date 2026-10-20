@@ -7,7 +7,8 @@ import { syncOrderToDjango } from "@/lib/django";
 const NEXT = {
   pending: ["paid", "cancelled"],
   awaiting_terms: ["cancelled"],
-  in_review: ["paid", "cancelled"], // "paid" = contabilidad ya confirmó en el sistema de entradas
+  in_review: ["paid", "cancelled"],
+  separated: ["cancelled"], // "paid" = contabilidad ya confirmó en el sistema de entradas
   paid: ["cancelled"],
   "paid-demo": ["cancelled"],
 };

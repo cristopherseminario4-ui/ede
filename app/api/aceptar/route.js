@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getOrderByAcceptToken, updateOrder, firmSold, expireStale } from "@/lib/orders";
 import { ZONES } from "@/lib/config";
-import { syncOrderToDjango } from "@/lib/django";
+import { syncOrderToDjango, syncAbonosOfOrder } from "@/lib/django";
 import { limited, clientIp, tooLarge } from "@/lib/validate";
 
 // El cliente acepta los T&C desde el link que le envió su asesor. Solo entonces se emite la entrada.
@@ -23,6 +23,12 @@ export async function POST(req) {
     // El pago lo recibió el asesor: pasa a revisión de contabilidad (con su comprobante) antes de emitir la entrada
     const zone = ZONES.find((z) => z.id === order.zone);
     if (zone && firmSold(zone.id) > zone.seats) return NextResponse.json({ error: "La zona se llenó. Tu asesor te contactará." }, { status: 409 });
+    if (order.saleKind === "separacion") {
+      updateOrder(order.code, { status: "separated", acceptedAt: now, acceptedIp: clientIp(req) });
+      await syncAbonosOfOrder(order.code);
+      const fresh = getOrderByAcceptToken(order.acceptToken);
+      return NextResponse.json({ ok: true, review: false, separated: true, status: fresh.status });
+    }
     const accepted = updateOrder(order.code, { status: "in_review", acceptedAt: now, acceptedIp: clientIp(req) });
     const s = await syncOrderToDjango(accepted);
     if (s?.syncStatus === "error") updateOrder(order.code, { alert: "T&C aceptados pero no llegó al sistema de entradas: reintentar" });

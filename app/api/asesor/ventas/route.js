@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { ZONES, EVENT, currentPrice } from "@/lib/config";
-import { newCode, saveOrder, hasPaidDni, expireStale, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday } from "@/lib/orders";
+import { newCode, saveOrder, hasPaidDni, expireStale, verifyAdvisor, listOrdersByAdvisor, opNumberUsed, advisorSalesToday, addAbono, paidSoFar } from "@/lib/orders";
 import { availability } from "@/lib/availability";
 import { copyToDrive } from "@/lib/drive";
 import { validateBuyer, limited, clientIp, tooLarge, accountLocked, registerFail, clearFails, signAdvisor } from "@/lib/validate";
@@ -13,6 +13,8 @@ const VOUCHER_DIR = path.join(process.cwd(), "data", "vouchers");
 const METODOS = ["yape", "plin", "transferencia", "efectivo", "deposito"];
 
 const DAILY_MAX = Number(process.env.ADVISOR_DAILY_MAX || 40);
+// Separación: pago mínimo para reservar la entrada (el resto se completa con abonos)
+const SEP_MIN = Number(process.env.SEPARACION_MIN || 50);
 
 // Autenticación del asesor por cabeceras (x-adv-code / x-adv-pin), ANTES de leer el cuerpo. Nunca en la URL.
 function auth(req) {
@@ -29,6 +31,7 @@ function auth(req) {
 const view = (o) => ({
   code: o.code, zone: o.zone, nombre: o.nombre, telefono: o.telefono, price: o.price, status: o.status,
   paymentMethod: o.paymentMethod, opNumber: o.manualRef, hasVoucher: !!o.voucherFile, createdAt: o.createdAt, acceptedAt: o.acceptedAt,
+  saleKind: o.saleKind, paid: o.saleKind === "separacion" ? paidSoFar(o.code) : o.payAmount, saldo: o.saleKind === "separacion" ? Math.max(0, o.price - paidSoFar(o.code)) : 0,
   acceptUrl: o.acceptToken ? `${base()}/aceptar/${o.acceptToken}` : null,
 });
 
@@ -71,8 +74,11 @@ export async function POST(req) {
   const days = (Date.now() - Date.parse(payDate)) / 86400000;
   if (days < -1 || days > 60) return NextResponse.json({ error: "La fecha de pago no es válida (no puede ser futura ni de hace más de 60 días)." }, { status: 400 });
   if (!(payAmount > 0)) return NextResponse.json({ error: "Indica el monto que pagó el cliente." }, { status: 400 });
-  if (payAmount !== currentPrice(zone))
+  const saleKind = b.tipoVenta === "separacion" ? "separacion" : "total";
+  if (saleKind === "total" && payAmount !== currentPrice(zone))
     return NextResponse.json({ error: `El monto debe ser S/ ${currentPrice(zone)} (precio de la zona). Si hay descuento, pide autorización a administración.` }, { status: 400 });
+  if (saleKind === "separacion" && (payAmount < SEP_MIN || payAmount >= currentPrice(zone)))
+    return NextResponse.json({ error: `Para separar, el monto debe ser desde S/ ${SEP_MIN} y menor a S/ ${currentPrice(zone)}. Si pagó todo, elige "Pago completo".` }, { status: 400 });
 
 
   // Comprobante: obligatorio salvo efectivo. Solo imagen o PDF, hasta 5 MB, verificado por su firma binaria.
@@ -106,8 +112,11 @@ export async function POST(req) {
     code: newCode(), zone: zone.id, price: currentPrice(zone), currency: "PEN", ...v.value,
     termsVersion: EVENT.termsVersion, acceptedAt: "", status: "awaiting_terms", createdAt: new Date().toISOString(),
     advisorCode: adv.code, advisorName: adv.name, paymentMethod: metodo, manualRef, payDate, payAmount, payBank,
-    acceptToken: crypto.randomBytes(18).toString("base64url"), voucherFile, voucherToken,
+    acceptToken: crypto.randomBytes(18).toString("base64url"), voucherFile, voucherToken, saleKind,
   });
+  // En una separación, el primer pago queda como pago n.º 1 (los abonos siguientes se suman a la misma entrada)
+  if (saleKind === "separacion")
+    addAbono({ orderCode: order.code, amount: payAmount, method: metodo, op: manualRef, payDate, bank: payBank, voucherFile, voucherToken, createdBy: adv.name });
   } catch (e) {
     if (voucherFile) try { fs.unlinkSync(path.join(VOUCHER_DIR, voucherFile)); } catch {}
     return NextResponse.json({ error: "No se pudo registrar la venta." }, { status: 500 });

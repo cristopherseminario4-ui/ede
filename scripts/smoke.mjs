@@ -59,6 +59,21 @@ const yes = await post("/api/aceptar", { token, acepta: true }); ok("aceptar T&C
 const bad1 = await j(`/api/admin/orders/${sale.d?.order?.code}`, { method: "PATCH", headers: { ...A, "Content-Type": "application/json" }, body: JSON.stringify({ status: "pending" }) });
 ok("transición inválida en admin se rechaza", bad1.r.status === 400);
 
+// 3b · Separación y abonos
+const fs1 = fd({ dni: dni(), referencia: `SEP${rnd}`, montoPagado: "50", tipoVenta: "separacion" }); fs1.append("voucher", png(), "v.png");
+const sep = await j("/api/asesor/ventas", { method: "POST", headers: H, body: fs1 });
+ok("separación registrada", sep.r.status === 200 && sep.d?.order?.saleKind === "separacion", sep.d?.error);
+const sepTok = sep.d?.order?.acceptUrl?.split("/aceptar/")[1];
+const fs0 = fd({ dni: dni(), referencia: `SEPX${rnd}`, montoPagado: "10", tipoVenta: "separacion" }); fs0.append("voucher", png(), "v.png");
+ok("separación menor al mínimo se rechaza", (await j("/api/asesor/ventas", { method: "POST", headers: H, body: fs0 })).r.status === 400);
+const abF = (extra) => { const f = new FormData(); Object.entries({ code: sep.d?.order?.code || "", montoPagado: "100", metodoPago: "yape", referencia: `AB${rnd}`, fechaPago: today, pagoRecibido: "true", ...extra }).forEach(([k, v]) => f.append(k, v)); f.append("voucher", png(), "v.png"); return f; };
+ok("abono antes de aceptar T&C se rechaza", (await j("/api/asesor/abonos", { method: "POST", headers: H, body: abF({}) })).r.status === 409);
+const sacc = await post("/api/aceptar", { token: sepTok, acepta: true }); ok("aceptar separación → separada", sacc.d?.separated === true);
+ok("abono mayor al saldo se rechaza", (await j("/api/asesor/abonos", { method: "POST", headers: H, body: abF({ montoPagado: "500", referencia: `ABX${rnd}` }) })).r.status === 400);
+const ab1 = await j("/api/asesor/abonos", { method: "POST", headers: H, body: abF({}) });
+ok("abono que completa el total → pagada", ab1.d?.status === "paid" && ab1.d?.saldo === 0, JSON.stringify(ab1.d).slice(0, 80));
+ok("abono a una entrada ya pagada se rechaza", (await j("/api/asesor/abonos", { method: "POST", headers: H, body: abF({ referencia: `ABY${rnd}` }) })).r.status === 409);
+
 // 4 · Contabilidad: usuario propio, comprobante manual
 const u = `conta${rnd}`;
 ok("crear usuario contabilidad", (await post("/api/admin/staff", { username: u, name: "Conta Humo", password: "humo1234" }, A)).r.status === 200);

@@ -3,9 +3,10 @@ import { useState } from "react";
 import { ZONES, currentPrice } from "@/lib/config";
 
 const METODOS = [["yape", "Yape"], ["plin", "Plin"], ["transferencia", "Transferencia"], ["deposito", "Depósito"], ["efectivo", "Efectivo"]];
-const EMPTY = { zone: "emprendedor", nombre: "", dni: "", telefono: "", correo: "", comprobante: "boleta", ruc: "", razonSocial: "", metodoPago: "yape", referencia: "", pagoRecibido: false, banco: "", fechaPago: "", montoPagado: "" };
+const EMPTY = { zone: "emprendedor", nombre: "", dni: "", telefono: "", correo: "", comprobante: "boleta", ruc: "", razonSocial: "", metodoPago: "yape", referencia: "", pagoRecibido: false, banco: "", fechaPago: "", montoPagado: "", tipoVenta: "total" };
+const AB_EMPTY = { montoPagado: "", metodoPago: "yape", referencia: "", fechaPago: "", banco: "", pagoRecibido: false };
 const MAX_MB = 5;
-const STATUS = { awaiting_terms: "Esperando T&C", in_review: "En revisión de contabilidad", paid: "Entrada emitida", cancelled: "Anulada" };
+const STATUS = { awaiting_terms: "Esperando T&C", in_review: "En revisión de contabilidad", separated: "Separada", paid: "Entrada emitida", cancelled: "Anulada", expired: "Vencida" };
 
 export default function Asesor() {
   const [auth, setAuth] = useState({ code: "", pin: "" });
@@ -15,6 +16,23 @@ export default function Asesor() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [last, setLast] = useState(null);
+  const [abFor, setAbFor] = useState(null); // venta separada a la que se registra un abono
+  const [ab, setAb] = useState(AB_EMPTY);
+  const [abFile, setAbFile] = useState(null);
+  const [abMsg, setAbMsg] = useState("");
+  async function sendAbono(e) {
+    e.preventDefault(); setAbMsg(""); setBusy(true);
+    try {
+      const fd = new FormData();
+      Object.entries({ ...ab, code: abFor.code }).forEach(([k, v]) => fd.append(k, String(v)));
+      if (abFile) fd.append("voucher", abFile);
+      const r = await fetch("/api/asesor/abonos", { method: "POST", headers: { "x-adv-code": auth.code, "x-adv-pin": auth.pin }, body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || "Error");
+      setAbMsg(d.status === "paid" ? "✔ Pago completo: el sistema envía la entrada con QR al cliente." : `✔ Abono registrado. Saldo pendiente: S/ ${d.saldo}`);
+      setAb(AB_EMPTY); setAbFile(null); refresh();
+    } catch (ex) { setAbMsg(ex.message); } finally { setBusy(false); }
+  }
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
 
   async function call(body) {
@@ -72,6 +90,11 @@ export default function Asesor() {
       <p className="note">Tu link para ventas online (el cliente paga con Mercado Pago): <b>{me.link}</b></p>
 
       <form onSubmit={submit} className="advisor-form">
+        <div className="field"><label>Tipo de venta</label>
+          <select value={f.tipoVenta} onChange={set("tipoVenta")}>
+            <option value="total">Pago completo</option>
+            <option value="separacion">Separación (pago parcial; el saldo se completa con abonos)</option>
+          </select></div>
         <div className="row2">
           <div className="field"><label>Zona</label>
             <select value={f.zone} onChange={set("zone")}>{ZONES.map((z) => <option key={z.id} value={z.id}>{z.name} · S/ {currentPrice(z)}</option>)}</select></div>
@@ -91,7 +114,7 @@ export default function Asesor() {
         </div>
         <div className="row2">
           <div className="field"><label>Fecha del pago</label><input type="date" required value={f.fechaPago} onChange={set("fechaPago")} max={new Date().toISOString().slice(0, 10)} /></div>
-          <div className="field"><label>Monto pagado (S/)</label><input required inputMode="decimal" value={f.montoPagado} onChange={set("montoPagado")} placeholder={`${currentPrice(ZONES.find((z) => z.id === f.zone))}`} /></div>
+          <div className="field"><label>{f.tipoVenta === "separacion" ? "Monto de la separación (S/)" : "Monto pagado (S/)"}</label><input required inputMode="decimal" value={f.montoPagado} onChange={set("montoPagado")} placeholder={f.tipoVenta === "separacion" ? "Ej. 50" : `${currentPrice(ZONES.find((z) => z.id === f.zone))}`} /></div>
         </div>
         <div className="field"><label>Banco / billetera (opcional)</label><input value={f.banco} onChange={set("banco")} placeholder="BCP, Interbank, Yape…" /></div>
         {f.comprobante === "factura" && (
@@ -102,7 +125,7 @@ export default function Asesor() {
         )}
         <div className="field"><label>Foto del voucher / comprobante {f.metodoPago === "efectivo" ? "(opcional en efectivo)" : "(obligatorio)"}</label>
           <input type="file" accept="image/*,application/pdf" capture="environment" onChange={(e) => setFile(e.target.files?.[0] || null)} /></div>
-        <label className="check"><input type="checkbox" checked={f.pagoRecibido} onChange={set("pagoRecibido")} /><span>Confirmo que ya recibí el pago completo del cliente.</span></label>
+        <label className="check"><input type="checkbox" checked={f.pagoRecibido} onChange={set("pagoRecibido")} /><span>{f.tipoVenta === "separacion" ? "Confirmo que ya recibí este pago de separación." : "Confirmo que ya recibí el pago completo del cliente."}</span></label>
         {err && <p className="err" role="alert">{err}</p>}
         <button className="btn" disabled={busy}>{busy ? "Registrando…" : "Registrar y generar link"} <span aria-hidden>→</span></button>
       </form>
@@ -120,22 +143,46 @@ export default function Asesor() {
       <h2 style={{ marginTop: 56 }}>Mis ventas</h2>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Código</th><th>Zona</th><th>Cliente</th><th>S/</th><th>Estado</th><th /></tr></thead>
+          <thead><tr><th>Código</th><th>Zona</th><th>Cliente</th><th>S/</th><th>Pagado / saldo</th><th>Estado</th><th /></tr></thead>
           <tbody>
             {orders.map((o) => (
               <tr key={o.code}>
                 <td><b>{o.code}</b><br /><small>{o.opNumber ? `Op. ${o.opNumber}` : ""}</small></td><td>{o.zone}</td><td>{o.nombre}<br /><small>{o.telefono}</small></td><td>{o.price}</td>
+                <td><small>{o.saleKind === "separacion" ? <>S/ {o.paid} pagado<br /><b>Saldo S/ {o.saldo}</b></> : "Completo"}</small></td>
                 <td><span className={`st st-${o.status}`}>{STATUS[o.status] || o.status}</span></td>
                 <td className="acts">
                   {o.status === "awaiting_terms" && <><a href={wa(o)} target="_blank" rel="noreferrer"><button>Reenviar</button></a><button onClick={() => copy(o.acceptUrl)}>Copiar link</button></>}
+                  {o.status === "separated" && <button onClick={() => { setAbFor(o); setAbMsg(""); setAb({ ...AB_EMPTY, montoPagado: String(o.saldo) }); }}>Registrar abono</button>}
                 </td>
               </tr>
             ))}
-            {!orders.length && <tr><td colSpan="6" style={{ textAlign: "center", color: "var(--mute)" }}>Aún no registras ventas</td></tr>}
+            {!orders.length && <tr><td colSpan="7" style={{ textAlign: "center", color: "var(--mute)" }}>Aún no registras ventas</td></tr>}
           </tbody>
         </table>
       </div>
       <p><button className="btn ghost" onClick={refresh}>Actualizar</button></p>
+
+      {abFor && (
+        <div className="overlay" onClick={(e) => e.target === e.currentTarget && setAbFor(null)}>
+          <form className="modal" onSubmit={sendAbono} data-lenis-prevent>
+            <button type="button" className="close" onClick={() => setAbFor(null)} aria-label="Cerrar">×</button>
+            <h3>Abono · {abFor.code}</h3>
+            <p className="sub">{abFor.nombre} · pagado S/ {abFor.paid} · saldo <b>S/ {abFor.saldo}</b>. Al completar el total, el sistema envía la entrada con QR.</p>
+            <div className="row2">
+              <div className="field"><label>Monto del abono (S/)</label><input required inputMode="decimal" value={ab.montoPagado} onChange={(e) => setAb({ ...ab, montoPagado: e.target.value })} /></div>
+              <div className="field"><label>Cómo pagó</label><select value={ab.metodoPago} onChange={(e) => setAb({ ...ab, metodoPago: e.target.value })}>{METODOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+            </div>
+            <div className="row2">
+              <div className="field"><label>N.º de operación</label><input value={ab.referencia} required={ab.metodoPago !== "efectivo"} onChange={(e) => setAb({ ...ab, referencia: e.target.value })} /></div>
+              <div className="field"><label>Fecha del pago</label><input type="date" required value={ab.fechaPago} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setAb({ ...ab, fechaPago: e.target.value })} /></div>
+            </div>
+            <div className="field"><label>Foto del voucher {ab.metodoPago === "efectivo" ? "(opcional)" : "(obligatoria)"}</label><input type="file" accept="image/*,application/pdf" capture="environment" onChange={(e) => setAbFile(e.target.files?.[0] || null)} /></div>
+            <label className="check"><input type="checkbox" checked={ab.pagoRecibido} onChange={(e) => setAb({ ...ab, pagoRecibido: e.target.checked })} /><span>Confirmo que ya recibí este abono.</span></label>
+            {abMsg && <p className={abMsg.startsWith("✔") ? "note" : "err"}>{abMsg}</p>}
+            <button className="btn" style={{ width: "100%", justifyContent: "space-between", marginTop: 14 }} disabled={busy}>{busy ? "Registrando…" : "Registrar abono"} <span aria-hidden>→</span></button>
+          </form>
+        </div>
+      )}
     </main>
   );
 }

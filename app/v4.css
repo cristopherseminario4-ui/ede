@@ -106,3 +106,5 @@ select, input, textarea { max-width: 100%; }
 .pass-note { display: flex; flex-direction: column; justify-content: center; gap: 10px; padding: 24px; border-left: 1px dashed var(--line); max-width: 260px; }
 .pass-note p { margin: 0; color: #cfc9dc; font-size: .9rem; line-height: 1.6; }
 @media (max-width: 720px) { .pass-note { border-left: 0; border-top: 1px dashed var(--line); max-width: none; } }
+
+.st-separated { color: #e8c15a; }

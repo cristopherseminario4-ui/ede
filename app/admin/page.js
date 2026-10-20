@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { ZONES } from "@/lib/config";
 
-const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", in_review: "En revisión (contabilidad)", expired: "Vencido", cancelled: "Anulado" };
+const STATUS = { pending: "Pendiente", paid: "Pagado", "paid-demo": "Pagado (demo)", awaiting_terms: "Esperando T&C", in_review: "En revisión (contabilidad)", expired: "Vencido", separated: "Separada (con saldo)", cancelled: "Anulado" };
 
 export default function Admin() {
   const [key, setKey] = useState("");
