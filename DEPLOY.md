@@ -16,9 +16,11 @@ Comando de arranque: `npm run build` y `npm start` (puerto por defecto 3100; en 
 | `BASE_URL` | URL pública, ej. `https://ede-evento.com` (links de pago, vouchers, correo) |
 | `MP_ACCESS_TOKEN` | Credencial de **producción** de Mercado Pago |
 | `MP_WEBHOOK_SECRET` | Firma de webhooks (Mercado Pago → Webhooks) · URL: `{BASE_URL}/api/webhook` |
-| `ADMIN_PASSWORD` | Clave del panel de administración (larga) |
+| `ADMIN_PASSWORD` | Clave del panel de administración (mín. 24 caracteres; si es más corta el panel no abre) |
 | `ADMIN_PATH` | Ruta secreta del panel (en producción `/admin` da 404) |
-| `SESSION_SECRET` | Cadena aleatoria larga: firma las sesiones de contabilidad |
+| `SESSION_SECRET` | Cadena aleatoria de 32+ caracteres: firma sesiones de contabilidad y links de asesor |
+| `TRUSTED_IP_HEADER` | Cabecera con la IP real según el proveedor (`cf-connecting-ip`, `x-vercel-forwarded-for`, `x-real-ip`) |
+| `ADVISOR_DAILY_MAX` | Tope de ventas manuales por asesor en 24 h (por defecto 40) |
 | `SMTP_HOST/PORT/USER/PASS`, `MAIL_FROM` | Correo desde la plataforma (comprobantes, reclamos) |
 | `DJANGO_API_URL`, `DJANGO_API_KEY`, `DJANGO_EVENTO_ID`, `DJANGO_TARIFAS` | Puente con el sistema de entradas (QR, correo/WhatsApp, puerta) |
 
@@ -28,7 +30,7 @@ Comando de arranque: `npm run build` y `npm start` (puerto por defecto 3100; en 
 - En Django definir `API_KEY` (o `API_KEYS_EXTRA`) = la misma clave que `DJANGO_API_KEY`.
 - Las tarifas de Django deben llamarse como indica `DJANGO_TARIFAS` (por defecto EMPRENDEDOR, VIP, EMPRESARIAL).
 - Pagos por Mercado Pago entran confirmados; ventas de asesor entran **pendientes** con el voucher enlazado y contabilidad las confirma en Django.
-- Subdominios sugeridos: web en `ede-evento.com`, sistema en `sistema.ede-evento.com` (no se enlaza desde la web).
+- **OJO:** hoy `ede-evento.com` es el sistema Django: la APK de puerta (`https://ede-evento.com/puerta/`), los QR ya emitidos, Google OAuth y el mapa (`/plano/`, `/mapa/`) dependen de ese dominio. **No mover Django de ahí antes del evento.** La landing va en un subdominio (p. ej. `entradas.ede-evento.com`) o en una ruta servida por un proxy (`ede-evento.com/el-despertar-del-emprendedor` con `basePath` en Next).
 
 ## 4 · Antes de abrir las ventas
 1. Borrar datos de prueba (asesor `prueba`, usuario `conta.prueba`, pedidos y reclamos de prueba) y cambiar la clave de administración.
