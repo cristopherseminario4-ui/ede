@@ -31,7 +31,8 @@ export async function POST(req) {
 
   // ¿Ya tiene un pago abierto? Mismo documento y zona → se reutiliza; otra zona → se anula el anterior (nunca dos cobros vivos)
   const prev = livePendingByDni(dni);
-  if (prev && prev.zone === zone.id && prev.mpUrl) return NextResponse.json({ url: prev.mpUrl });
+  // En modo prueba no se reutiliza: las credenciales cambian entre intentos y el link viejo deja de servir
+  if (prev && prev.zone === zone.id && prev.mpUrl && !mpSandbox()) return NextResponse.json({ url: prev.mpUrl });
   if (prev) updateOrder(prev.code, { status: "cancelled" });
 
   if (availability()[zone.id].left <= 0) return NextResponse.json({ error: `La Zona ${zone.name} está agotada.` }, { status: 409 });
